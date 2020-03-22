@@ -16,7 +16,12 @@ int main(int argc, char **argv) {
         return -1;
     }
     for(;;){
-        cout << getNextToken(file) << endl;
+        try {
+            cout << "\"" << getNextToken(file) << "\"" << endl;
+        } catch(InvalidStateException* e){
+            cout << "Reached EOF." << endl;
+            break;
+        }
     }
     return 0;
 }

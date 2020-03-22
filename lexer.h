@@ -35,7 +35,27 @@ void reset(){
     currState = START;
     lexeme = "";
     clear(states);
-    states.push(ERROR);
+    states.push(BAD);
+}
+
+void rollback(){
+    while (!isFinal(currState) && currState != BAD){
+        currState = states.top();
+        states.pop();
+        lexeme.pop_back();
+    }
+}
+
+string truncate(ifstream &file, bool eof){
+    if (isFinal(currState)) {
+        file.seekg(p); // Moving pointer back to where it was good.
+        while(!eof && isspace(file.peek())){
+            file.get();
+        }
+        return lexeme;
+    } else {
+        throw new InvalidStateException();
+    }
 }
 
 string getNextToken(ifstream &file){
@@ -53,19 +73,13 @@ string getNextToken(ifstream &file){
             currState = TX[cat][currState];
         } else {
             // Rollback loop.
-            while (!isFinal(currState) && currState != BAD){
-                currState = states.top();
-                states.pop();
-                lexeme.pop_back();
-            }
-            if (isFinal(currState)) {
-                file.seekg(p); // Moving pointer back to where it was good.
-                return lexeme;
-            } else {
-                throw new InvalidStateException();
-            }
+            rollback();
+            return truncate(file, false);
         }
     }
-    throw new InvalidStateException();
+
+    // Final Rollback loop.
+    rollback();
+    return truncate(file, true);
 }
 #endif //SMALLLANG_LEXER_H

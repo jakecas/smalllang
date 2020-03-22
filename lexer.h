@@ -80,7 +80,7 @@ string getNextToken(ifstream &file){
             lexeme += c;
             if (isFinal(currState)){
                 clear(states);
-                p = file.tellg();
+                p = file.tellg() - (streamoff)1;
             }
             states.push(currState);
             Cat cat = getCat(c);

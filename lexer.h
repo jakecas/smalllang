@@ -17,13 +17,22 @@ string lexeme;
 stack<State> states;
 istream::streampos p; // Position of last final state, to facilitate rollback step.
 
+bool eofflag = false;
+
 // Thrown if the file could not be opened.
-struct InvalidStateException : public std::exception {
+struct InvalidStateException : public exception {
     const char *message () const throw () {
         return "Invalid state reached.";
     }
 };
+// Thrown when file is already read.
+struct EOFException : public exception {
+    const char *message () const throw () {
+        return "EOF reached.";
+    }
+};
 
+// generic utility functions
 template <class T>
 void clear(stack<T> st){
     while(!st.empty()){
@@ -31,6 +40,7 @@ void clear(stack<T> st){
     }
 }
 
+// lexer specific functions
 void reset(){
     currState = START;
     lexeme = "";
@@ -46,10 +56,10 @@ void rollback(){
     }
 }
 
-string truncate(ifstream &file, bool eof){
+string truncate(ifstream &file){
     if (isFinal(currState)) {
         file.seekg(p); // Moving pointer back to where it was good.
-        while(!eof && isspace(file.peek())){
+        while(!eofflag && isspace(file.peek())){
             file.get();
         }
         return lexeme;
@@ -59,6 +69,10 @@ string truncate(ifstream &file, bool eof){
 }
 
 string getNextToken(ifstream &file){
+    if(eofflag){
+        throw new EOFException();
+    }
+
     reset();
     while (!file.eof()){
         if(currState != ERROR) {
@@ -74,12 +88,13 @@ string getNextToken(ifstream &file){
         } else {
             // Rollback loop.
             rollback();
-            return truncate(file, false);
+            return truncate(file);
         }
     }
 
     // Final Rollback loop.
+    eofflag = true;
     rollback();
-    return truncate(file, true);
+    return truncate(file);
 }
 #endif //SMALLLANG_LEXER_H

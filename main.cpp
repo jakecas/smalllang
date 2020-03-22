@@ -18,8 +18,11 @@ int main(int argc, char **argv) {
     for(;;){
         try {
             cout << "\"" << getNextToken(file) << "\"" << endl;
-        } catch(InvalidStateException* e){
+        } catch(EOFException* e){
             cout << "Reached EOF." << endl;
+            break;
+        } catch(InvalidStateException* e){
+            cout << "ERROR" << endl;
             break;
         }
     }

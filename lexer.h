@@ -59,9 +59,6 @@ void rollback(){
 string truncate(ifstream &file){
     if (isFinal(currState)) {
         file.seekg(p); // Moving pointer back to where it was good.
-        while(!eofflag && isspace(file.peek())){
-            file.get();
-        }
         return lexeme;
     } else {
         throw new InvalidStateException();

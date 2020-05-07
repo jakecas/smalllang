@@ -5,6 +5,11 @@
 #ifndef SMALLLANG_LEXERTABLE_H
 #define SMALLLANG_LEXERTABLE_H
 
+#include <string>
+#include <map>
+
+using namespace std;
+
 enum State {
     START,
     DELIM, // Whitespace
@@ -27,6 +32,8 @@ enum State {
     GES, // Greater than or equal to State
     EQUALS, // Equals Assignment Operator
     EQS, // Equal To Operator
+    BRACES,
+    SEPS, // Separator state ,:;
     ERROR,
     BAD// This must always be the last element of the enum.
 };
@@ -44,6 +51,9 @@ bool isFinal(State s){
     if (s == ADDS || s == DIVS || s == MULTS || s == LTS || s == LES || s == NES || s == GTS || s == GES || s == EQUALS || s == EQS){
         return true;
     }
+    if (s == BRACES || s == SEPS){
+        return true;
+    }
     return false;
 }
 
@@ -59,6 +69,8 @@ enum Cat {
     LT, // Greater than relational operator: <
     GT, // Less than relational operator: <
     EQ, // Equals sign: <
+    BRACE, // (){}
+    SEPARATOR, //,:;
     OTHER // This must always be the last element of the enum.
 };
 
@@ -96,25 +108,63 @@ Cat getCat(char c){
     if(c == '='){
         return EQ;
     }
+    if(c == '(' || c == ')' || c == '{' || c == '}'){
+        return BRACE;
+    }
+    if(c == ',' || c == ':' || c == ';'){
+        return SEPARATOR;
+    }
     return OTHER;
 }
 
 // Using OTHER+1 and BAD for the size since they are the last element of the enum (and BAD has no transitions).
 // i.e. To facilitate adding states/classifiers.
 State TX[OTHER+1][BAD] = {
-        //START,DELIM, UCMT,  CMT,   UMCMT, AMCMT, MCMT,  INTEG, UFLOAT,FLOAT, WORD,  ADDS,  DIVS,  MULTS, LTS,   LES,   NES,   GTS,   GES,   EQUALS,EQS,   ERROR
-        {DELIM, DELIM, CMT,   ERROR, UMCMT, UMCMT, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR}, // NEWLINE
-        {DELIM, DELIM, UCMT,  ERROR, UMCMT, UMCMT, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR}, // WS
-        {INTEG, ERROR, UCMT,  ERROR, UMCMT, UMCMT, ERROR, INTEG, FLOAT, FLOAT, WORD,  ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR}, // DIGIT
-        {ERROR, ERROR, UCMT,  ERROR, UMCMT, UMCMT, ERROR, UFLOAT,ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR}, // PERIOD
-        {WORD,  ERROR, UCMT,  ERROR, UMCMT, UMCMT, ERROR, ERROR, ERROR, ERROR, WORD,  ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR}, // CHAR
-        {ADDS,  ERROR, UCMT,  ERROR, UMCMT, UMCMT, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR}, // ADDOP
-        {DIVS,  ERROR, UCMT,  ERROR, UMCMT, MCMT,  ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, UCMT,  ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR}, // DIV
-        {MULTS, ERROR, UCMT,  ERROR, AMCMT, AMCMT, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, UMCMT, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR}, // MULT
-        {LTS,   ERROR, UCMT,  ERROR, UMCMT, UMCMT, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR}, // LT
-        {GTS,   ERROR, UCMT,  ERROR, UMCMT, UMCMT, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, NES,   ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR}, // GT
-        {EQUALS,ERROR, UCMT,  ERROR, UMCMT, UMCMT, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, LES,   ERROR, ERROR, GES,   ERROR, EQS,   ERROR, ERROR}, // EQ
-        {ERROR, ERROR, UCMT,  ERROR, UMCMT, UMCMT, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR} // OTHER
+        //START,DELIM, UCMT,  CMT,   UMCMT, AMCMT, MCMT,  INTEG, UFLOAT,FLOAT, WORD,  ADDS,  DIVS,  MULTS, LTS,   LES,   NES,   GTS,   GES,   EQUALS,EQS,   BRACES, SEPS, ERROR
+        {DELIM, DELIM, CMT,   ERROR, UMCMT, UMCMT, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR}, // NEWLINE
+        {DELIM, DELIM, UCMT,  ERROR, UMCMT, UMCMT, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR}, // WS
+        {INTEG, ERROR, UCMT,  ERROR, UMCMT, UMCMT, ERROR, INTEG, FLOAT, FLOAT, WORD,  ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR}, // DIGIT
+        {ERROR, ERROR, UCMT,  ERROR, UMCMT, UMCMT, ERROR, UFLOAT,ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR}, // PERIOD
+        {WORD,  ERROR, UCMT,  ERROR, UMCMT, UMCMT, ERROR, ERROR, ERROR, ERROR, WORD,  ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR}, // CHAR
+        {ADDS,  ERROR, UCMT,  ERROR, UMCMT, UMCMT, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR}, // ADDOP
+        {DIVS,  ERROR, UCMT,  ERROR, UMCMT, MCMT,  ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, UCMT,  ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR}, // DIV
+        {MULTS, ERROR, UCMT,  ERROR, AMCMT, AMCMT, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, UMCMT, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR}, // MULT
+        {LTS,   ERROR, UCMT,  ERROR, UMCMT, UMCMT, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR}, // LT
+        {GTS,   ERROR, UCMT,  ERROR, UMCMT, UMCMT, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, NES,   ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR}, // GT
+        {EQUALS,ERROR, UCMT,  ERROR, UMCMT, UMCMT, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, LES,   ERROR, ERROR, GES,   ERROR, EQS,   ERROR, ERROR, ERROR, ERROR}, // EQ
+        {BRACES,ERROR, UCMT,  ERROR, UMCMT, UMCMT, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR}, // BRACE
+        {SEPS,  ERROR, UCMT,  ERROR, UMCMT, UMCMT, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR}, // SEPARATOR
+        {ERROR, ERROR, UCMT,  ERROR, UMCMT, UMCMT, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR} // OTHER
 };
+
+enum Token {
+    TYPET, // Datatype token keywords float, int, bool
+    AUTOK, // Auto type keyword
+    BOOLL, // Boolean literal, true/false
+    INTL, // Integer literal
+    FLOATL, // Float literal
+    IDT, // Identifier, i.e. unreserved word
+    MULTOPT, // Multiplicative operators * /  and
+    ADDOPT, // Additive operators token + - or
+    RELOPT, // Relational operators token < > == <> <= >,=
+    NOTK, // "not" unary operator eyword
+    LETK, // "let" keyword
+    PRINTK, // "print" keyword
+    RETURNK, // "return" keyword
+    IFK, // "if" keyword
+    ELSEK, // "else" keyword
+    FORK, // "for" keyword
+    WHILEK, // "while" keyword
+    FUNCK // "ff" keyword
+};
+
+map<string, int> keywords = {{"float", TYPET}, {"int", TYPET}, {"bool", TYPET},
+                                  {"auto", AUTOK}, {"true", BOOLL}, {"false", BOOLL},
+                                  {"and", MULTOPT}, {"or", ADDOPT}, {"not", NOTK},
+                                  {"let", LETK}, {"print", PRINTK}, {"return", RETURNK},
+                                  {"if", IFK}, {"else", ELSEK},
+                                  {"for", FORK}, {"while", WHILEK},
+                                  {"ff", FUNCK}};
+
 
 #endif //SMALLLANG_LEXERTABLE_H

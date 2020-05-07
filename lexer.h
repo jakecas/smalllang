@@ -65,10 +65,11 @@ string truncate(ifstream &file){
     }
 }
 
-string getNextToken(ifstream &file){
+Token* getNextToken(ifstream &file){
     if(eofflag){
         throw new EOFException();
     }
+    State finalState;
 
     reset();
     while (!file.eof()){
@@ -76,6 +77,7 @@ string getNextToken(ifstream &file){
             char c = file.get();
             lexeme += c;
             if (isFinal(currState)){
+                finalState = currState;
                 clear(states);
                 p = file.tellg() - (streamoff)1;
             }
@@ -85,13 +87,25 @@ string getNextToken(ifstream &file){
         } else {
             // Rollback loop.
             rollback();
-            return truncate(file);
+            string lexeme = truncate(file);
+
+            Type type = findType(lexeme, finalState);
+            if(type == SKIP){
+                return nullptr;
+            }
+            return new Token(type, lexeme);
         }
     }
 
     // Final Rollback loop.
     eofflag = true;
     rollback();
-    return truncate(file);
+    string lexeme = truncate(file);
+
+    Type type = findType(lexeme, finalState);
+    if(type == SKIP){
+        return nullptr;
+    }
+    return new Token(type, lexeme);
 }
 #endif //SMALLLANG_LEXER_H

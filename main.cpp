@@ -17,7 +17,10 @@ int main(int argc, char **argv) {
     }
     for(;;){
         try {
-            cout << "\"" << getNextToken(file) << "\"" << endl;
+            Token* token = getNextToken(file);
+            if(token != nullptr) {
+                cout << "\"" << token->getLexeme() << " : " << token->getType() << "\"" << endl;
+            }
         } catch(EOFException* e){
             cout << "Reached EOF." << endl;
             break;

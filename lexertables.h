@@ -137,7 +137,7 @@ State TX[OTHER+1][BAD] = {
         {ERROR, ERROR, UCMT,  ERROR, UMCMT, UMCMT, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR, ERROR} // OTHER
 };
 
-enum Token {
+enum Type {
     TYPET, // Datatype token keywords float, int, bool
     AUTOK, // Auto type keyword
     BOOLL, // Boolean literal, true/false
@@ -155,10 +155,39 @@ enum Token {
     ELSEK, // "else" keyword
     FORK, // "for" keyword
     WHILEK, // "while" keyword
-    FUNCK // "ff" keyword
+    FUNCK, // "ff" keyword
+    EQUALSL, // '=' literal
+    OPENROUND, // '(' literal
+    CLOSEROUND, // ')' literal
+    OPENCURLY, // '{' literal
+    CLOSECURLY, // '}' literal
+    COMMAL, // ',' literal
+    CLNL, // ':' literal
+    SEMICLNL, // ';' literal
+    SKIP // Token to skip, namely whitespace and comments.
 };
 
-map<string, int> keywords = {{"float", TYPET}, {"int", TYPET}, {"bool", TYPET},
+class Token {
+private:
+    Type type;
+    string lexeme;
+public:
+    Token(Type type, string lexeme){
+        this->type = type;
+        this->lexeme = lexeme;
+    }
+    Token(Type type){
+        this->type = type;
+    }
+    Type getType(){
+        return type;
+    }
+    string getLexeme(){
+        return lexeme;
+    }
+};
+
+map<string, Type> keywords = {{"float", TYPET}, {"int", TYPET}, {"bool", TYPET},
                                   {"auto", AUTOK}, {"true", BOOLL}, {"false", BOOLL},
                                   {"and", MULTOPT}, {"or", ADDOPT}, {"not", NOTK},
                                   {"let", LETK}, {"print", PRINTK}, {"return", RETURNK},
@@ -166,5 +195,56 @@ map<string, int> keywords = {{"float", TYPET}, {"int", TYPET}, {"bool", TYPET},
                                   {"for", FORK}, {"while", WHILEK},
                                   {"ff", FUNCK}};
 
+bool isKeyword(string s){
+    return keywords.count(s) != 0;
+}
+
+Type findType(string lexeme, State state){
+    switch(state){
+        case FLOAT:
+            return FLOATL;
+        case INTEG:
+            return INTL;
+        case WORD:
+            if(isKeyword(lexeme)){
+                return keywords.find(lexeme)->second;
+            }
+            return IDT;
+        case MULTS:
+        case DIVS:
+            return MULTOPT;
+        case ADDS:
+            return ADDOPT;
+        case LTS:
+        case LES:
+        case NES:
+        case GTS:
+        case GES:
+        case EQS:
+            return RELOPT;
+        case EQUALS:
+            return EQUALSL;
+        case BRACES:
+            if(lexeme.compare("(")){
+                return OPENROUND;
+            } else if(lexeme.compare(")")){
+                return CLOSEROUND;
+            } else if(lexeme.compare("{")){
+                return OPENCURLY;
+            } else {
+                return CLOSECURLY;
+            }
+        case SEPS:
+            if(lexeme.compare(",")){
+                return COMMAL;
+            } else if(lexeme.compare(":")) {
+                return CLNL;
+            }else {
+                return SEMICLNL;
+            }
+        default:
+            return SKIP;
+    }
+}
 
 #endif //SMALLLANG_LEXERTABLE_H

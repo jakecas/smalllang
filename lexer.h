@@ -12,13 +12,6 @@
 
 using namespace std;
 
-State currState;
-string lexeme;
-stack<State> states;
-istream::streampos p; // Position of last final state, to facilitate rollback step.
-
-bool eofflag = false;
-
 // Thrown if the file could not be opened.
 struct InvalidStateException : public exception {
     const char *message () const throw () {
@@ -32,6 +25,38 @@ struct EOFException : public exception {
     }
 };
 
+class Lexer {
+private:
+    State currState;
+    string lexeme;
+    stack<State> states;
+
+    ifstream file;
+    istream::streampos p; // Position of last final state, to facilitate rollback step.
+
+    bool eofflag = false;
+
+    // functions
+    void reset();
+    void rollback();
+    string truncate();
+
+public:
+    Lexer(string filename){
+        file.open(filename);
+
+        if (!file.is_open()){
+            cout << "Error opening source file: " << filename << endl;
+            throw new InvalidStateException();
+        }
+    }
+
+    Token* getNextToken();
+    bool isEof(){
+        return eofflag;
+    }
+};
+
 // generic utility functions
 template <class T>
 void clear(stack<T> st){
@@ -41,14 +66,14 @@ void clear(stack<T> st){
 }
 
 // lexer specific functions
-void reset(){
+void Lexer::reset(){
     currState = START;
     lexeme = "";
     clear(states);
     states.push(BAD);
 }
 
-void rollback(){
+void Lexer::rollback(){
     while (!isFinal(currState) && currState != BAD){
         currState = states.top();
         states.pop();
@@ -56,7 +81,7 @@ void rollback(){
     }
 }
 
-string truncate(ifstream &file){
+string Lexer::truncate(){
     if (isFinal(currState)) {
         file.seekg(p); // Moving pointer back to where it was good.
         return lexeme;
@@ -65,7 +90,7 @@ string truncate(ifstream &file){
     }
 }
 
-Token* getNextToken(ifstream &file){
+Token* Lexer::getNextToken(){
     if(eofflag){
         throw new EOFException();
     }
@@ -87,7 +112,7 @@ Token* getNextToken(ifstream &file){
         } else {
             // Rollback loop.
             rollback();
-            string lexeme = truncate(file);
+            string lexeme = truncate();
 
             Type type = findType(lexeme, finalState);
             if(type == SKIP){
@@ -100,7 +125,7 @@ Token* getNextToken(ifstream &file){
     // Final Rollback loop.
     eofflag = true;
     rollback();
-    string lexeme = truncate(file);
+    string lexeme = truncate();
 
     Type type = findType(lexeme, finalState);
     if(type == SKIP){

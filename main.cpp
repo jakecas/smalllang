@@ -10,25 +10,24 @@ int main(int argc, char **argv) {
         return -1;
     }
 
-    ifstream file(argv[1]);
-    if (!file.is_open()){
-        cout << "Error opening source file: " << argv[1] << endl;
-        return -1;
-    }
-    for(;;){
+    Lexer* lexer = new Lexer(argv[1]);
+
+    while(!lexer->isEof()){
         try {
-            Token* token = getNextToken(file);
+            Token* token = lexer->getNextToken();
             if(token != nullptr) {
                 cout << "\"" << token->getLexeme() << " : " << token->getType() << "\"" << endl;
             }
         } catch(EOFException* e){
-            cout << "Reached EOF." << endl;
+            cout << "ERROR: Reached EOF." << endl;
             break;
         } catch(InvalidStateException* e){
             cout << "ERROR" << endl;
             break;
         }
     }
+
+    cout << "Reached EOF." << endl;
     return 0;
 }
 

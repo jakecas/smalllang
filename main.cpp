@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include "lexer.h"
+#include "parser.h"
 
 using namespace std;
 
@@ -11,21 +12,21 @@ int main(int argc, char **argv) {
     }
 
     Lexer* lexer = new Lexer(argv[1]);
+    Parser* parser = new Parser(lexer);
 
-    while(!lexer->isEof()){
-        try {
-            Token* token = lexer->getNextToken();
-            if(token != nullptr) {
-                cout << "\"" << token->getLexeme() << " : " << token->getType() << "\"" << endl;
-            }
-        } catch(EOFException* e){
-            cout << "ERROR: Reached EOF." << endl;
-            break;
-        } catch(InvalidStateException* e){
-            cout << "ERROR" << endl;
-            break;
-        }
+//    while(!lexer->isEof()){
+    try {
+        parser->parseProgram();
+    } catch(EOFException* e){
+        cout << "ERROR: Reached EOF." << endl;
+//        break;
+    } catch(InvalidStateException* e){
+        cout << "ERROR" << endl;
+//        break;
+    } catch(SyntaxErrorException* e){
+        cout << e->message() << endl;
     }
+//    }
 
     cout << "Reached EOF." << endl;
     return 0;

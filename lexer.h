@@ -35,6 +35,7 @@ private:
     istream::streampos p; // Position of last final state, to facilitate rollback step.
 
     bool eofflag = false;
+    int linec = 1;
 
     // functions
     void reset();
@@ -50,8 +51,14 @@ public:
             throw new InvalidStateException();
         }
     }
+    ~Lexer(){
+        file.close();
+    }
 
     Token* getNextToken();
+    int getLineNum(){
+        return linec;
+    }
     bool isEof(){
         return eofflag;
     }
@@ -108,6 +115,11 @@ Token* Lexer::getNextToken(){
             }
             states.push(currState);
             Cat cat = getCat(c);
+
+            if(cat == NEWLINE){
+                linec++;
+            }
+
             currState = TX[cat][currState];
         } else {
             // Rollback loop.

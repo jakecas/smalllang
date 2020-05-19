@@ -225,19 +225,19 @@ Type findType(string lexeme, State state){
         case EQUALS:
             return EQUALSL;
         case BRACES:
-            if(lexeme.compare("(")){
+            if(lexeme.compare("(") == 0){
                 return OPENROUND;
-            } else if(lexeme.compare(")")){
+            } else if(lexeme.compare(")") == 0){
                 return CLOSEROUND;
-            } else if(lexeme.compare("{")){
+            } else if(lexeme.compare("{") == 0){
                 return OPENCURLY;
             } else {
                 return CLOSECURLY;
             }
         case SEPS:
-            if(lexeme.compare(",")){
+            if(lexeme.compare(",") == 0){
                 return COMMAL;
-            } else if(lexeme.compare(":")) {
+            } else if(lexeme.compare(":") == 0) {
                 return CLNL;
             }else {
                 return SEMICLNL;

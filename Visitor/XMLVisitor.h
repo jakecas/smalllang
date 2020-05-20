@@ -1,0 +1,8 @@
+//
+// Created by Jake on 20/05/2020.
+//
+
+#ifndef SMALLLANG_XMLVISITOR_H
+#define SMALLLANG_XMLVISITOR_H
+
+#endif //SMALLLANG_XMLVISITOR_H

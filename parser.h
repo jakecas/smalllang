@@ -246,7 +246,10 @@ ASTWhileStmt* Parser::parseWhileStmt(){
 }
 
 ASTFormalParam* Parser::parseFormalParam() {
-    return new ASTFormalParam(parseId(), parseType());
+    ASTId* id = parseId();
+    nextToken(); // consume ':' token as it's served its purpose
+    ASTType* type = parseType();
+    return new ASTFormalParam(id, type);
 }
 
 ASTFuncDecl* Parser::parseFuncDecl(){
@@ -289,7 +292,6 @@ ASTBlock* Parser::parseBlock(){
 
 ASTStmt* Parser::parseStmt(){
     Token* tkn = peekNextToken();
-    cout << tkn->getLexeme() << endl;
     switch(tkn->getType()){
         case LETK:
             // variable declaration
@@ -484,6 +486,7 @@ ASTProgram* Parser::parseProgram(){
     while(!lexer->isEof()){
         astTree->addStmt(parseStmt());
     }
+    return astTree;
 }
 
 #endif //SMALLLANG_PARSER_H

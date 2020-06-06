@@ -77,6 +77,7 @@ private:
 public:
     Parser(Lexer* lexer){
         this->lexer = lexer;
+        this->astTree = new ASTProgram;
     }
 
     ASTProgram* parseProgram();

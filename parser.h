@@ -113,6 +113,7 @@ Token* Parser::peekNextToken(){
     return lookahead(1)[0];
 }
 bool Parser::checkEof(){
+    // This part is a workaround, it is not clean and could definitely be improved.
     try{
         peekNextToken();
     } catch (EOFException* e){

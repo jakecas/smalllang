@@ -5,7 +5,9 @@
 #ifndef SMALLLANG_ASTNODE_H
 #define SMALLLANG_ASTNODE_H
 
-class ASTNode {
+#include "../Visitor/Visitor.h"
+
+class ASTNode: public Connector {
 public:
     ASTNode(){};
 };

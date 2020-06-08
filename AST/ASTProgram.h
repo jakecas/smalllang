@@ -19,6 +19,14 @@ public:
     void addStmt(ASTStmt* stmt){
         stmts.push_back(stmt);
     }
+
+    vector<ASTStmt*> getStmts(){
+        return stmts;
+    }
+
+    void accept(Visitor* visitor){
+        visitor->visit(this);
+    }
 };
 
 #endif //SMALLLANG_AST_H

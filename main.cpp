@@ -2,6 +2,7 @@
 #include <fstream>
 #include "lexer.h"
 #include "parser.h"
+#include "Visitor/XMLVisitor.h"
 
 using namespace std;
 
@@ -11,12 +12,15 @@ int main(int argc, char **argv) {
         return -1;
     }
 
-    Lexer* lexer = new Lexer(argv[1]);
+    string filename = argv[1];
+
+    Lexer* lexer = new Lexer(filename);
     Parser* parser = new Parser(lexer);
+    ASTProgram* parseTree;
 
 //    while(!lexer->isEof()){
     try {
-        parser->parseProgram();
+        parseTree = parser->parseProgram();
     } catch(EOFException* e){
         cout << "ERROR: Reached EOF." << endl;
 //        break;
@@ -29,6 +33,9 @@ int main(int argc, char **argv) {
 //    }
 
     cout << "Reached EOF." << endl;
+    cout << "Creating XML." << endl;
+    XMLVisitor* xmlVisitor = new XMLVisitor(filename + ".xml");
+    xmlVisitor->visit(parseTree);
     return 0;
 }
 

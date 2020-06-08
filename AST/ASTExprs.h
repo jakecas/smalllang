@@ -13,6 +13,8 @@
 class ASTFactor : public ASTNode {
 public:
     ASTFactor(){};
+
+    virtual void accept(Visitor* visitor) = 0;
 };
 
 class ASTTerm : public ASTNode  {
@@ -28,6 +30,20 @@ public:
         this->factor = factor;
         this->multOp = multOp;
         this->term = term;
+    }
+
+    ASTFactor* getFactor(){
+        return factor;
+    }
+    MultOp getMultOp(){
+        return multOp;
+    }
+    ASTTerm* getTerm(){
+        return term;
+    }
+
+    void accept(Visitor* visitor){
+        visitor->visit(this);
     }
 };
 
@@ -45,6 +61,20 @@ public:
         this->addOp = addOp;
         this->simpleExpr = simpleExpr;
     }
+
+    ASTTerm* getTerm(){
+        return term;
+    }
+    AddOp getAddOp(){
+        return addOp;
+    }
+    ASTSimpleExpr* getSimpleExpr(){
+        return simpleExpr;
+    }
+
+    void accept(Visitor* visitor){
+        visitor->visit(this);
+    }
 };
 
 class ASTExpr : public ASTNode {
@@ -61,6 +91,20 @@ public:
         this->relOp = relOp;
         this->expr = expr;
     }
+
+    ASTSimpleExpr* getSimpleExpr(){
+        return simpleExpr;
+    }
+    RelOp getRelOp(){
+        return relOp;
+    }
+    ASTExpr* getExpr(){
+        return expr;
+    }
+
+    void accept(Visitor* visitor){
+        visitor->visit(this);
+    }
 };
 
 class ASTId : public ASTFactor {
@@ -73,6 +117,10 @@ public:
     string getId(){
         return id;
     }
+
+    void accept(Visitor* visitor){
+        visitor->visit(this);
+    }
 };
 
 class ASTActualParam : public ASTNode {
@@ -81,6 +129,14 @@ private:
 public:
     ASTActualParam(ASTExpr* expr){
         this->expr = expr;
+    }
+
+    ASTExpr* getExpr(){
+        return expr;
+    }
+
+    void accept(Visitor* visitor){
+        visitor->visit(this);
     }
 };
 
@@ -96,6 +152,17 @@ public:
         this->id = id;
         this->actualParams = actualParams;
     }
+
+    ASTId* getId(){
+        return id;
+    }
+    vector<ASTActualParam*> getActualParams(){
+        return actualParams;
+    }
+
+    void accept(Visitor* visitor){
+        visitor->visit(this);
+    }
 };
 
 class ASTSubExpr : public ASTFactor {
@@ -104,6 +171,14 @@ private:
 public:
     ASTSubExpr(ASTExpr* expr){
         this->expr = expr;
+    }
+
+    ASTExpr* getExpr(){
+        return expr;
+    }
+
+    void accept(Visitor* visitor){
+        visitor->visit(this);
     }
 };
 
@@ -116,11 +191,24 @@ public:
         this->unaryOp = unaryOp;
         this->expr = expr;
     }
+
+    UnaryOp getUnaryOp(){
+        return unaryOp;
+    }
+    ASTExpr* getExpr(){
+        return expr;
+    }
+
+    void accept(Visitor* visitor){
+        visitor->visit(this);
+    }
 };
 
 class ASTLiteral : public ASTFactor {
 public:
     ASTLiteral(){}
+
+    virtual void accept(Visitor* visitor) = 0;
 };
 
 class ASTBoolLit: public ASTLiteral {
@@ -129,6 +217,14 @@ private:
 public:
     ASTBoolLit(bool val){
         this->val = val;
+    }
+
+    bool getVal(){
+        return val;
+    }
+
+    void accept(Visitor* visitor){
+        visitor->visit(this);
     }
 };
 
@@ -139,6 +235,14 @@ public:
     ASTIntLit(int val){
         this->val = val;
     }
+
+    int getVal(){
+        return val;
+    }
+
+    void accept(Visitor* visitor){
+        visitor->visit(this);
+    }
 };
 
 class ASTFloatLit: public ASTLiteral {
@@ -147,6 +251,14 @@ private:
 public:
     ASTFloatLit(float val){
         this->val = val;
+    }
+
+    float getVal(){
+        return val;
+    }
+
+    void accept(Visitor* visitor){
+        visitor->visit(this);
     }
 };
 

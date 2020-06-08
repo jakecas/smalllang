@@ -13,6 +13,8 @@
 class ASTStmt : public ASTNode {
 public:
     ASTStmt(){};
+
+    virtual void accept(Visitor* visitor) = 0;
 };
 
 class ASTBlock : public ASTStmt {
@@ -20,6 +22,14 @@ class ASTBlock : public ASTStmt {
 public:
     ASTBlock(vector<ASTStmt*> stmts){
         this->stmts = stmts;
+    }
+
+    vector<ASTStmt*> getStmts(){
+        return stmts;
+    }
+
+    void accept(Visitor* visitor){
+        visitor->visit(this);
     }
 };
 
@@ -32,18 +42,43 @@ public:
         this->id = id;
         this->expr = expr;
     }
+
+    ASTId* getId(){
+        return id;
+    }
+    ASTExpr* getExpr(){
+        return expr;
+    }
+
+    void accept(Visitor* visitor){
+        visitor->visit(this);
+    }
 };
 
 class ASTVarDecl : public ASTStmt {
 private:
-    ASTId* idnode;
+    ASTId* id;
     ASTType* type;
     ASTExpr* expr;
 public:
-    ASTVarDecl(ASTId* idnode, ASTType* type, ASTExpr* expr){
-        this->idnode = idnode;
+    ASTVarDecl(ASTId* id, ASTType* type, ASTExpr* expr){
+        this->id = id;
         this->type = type;
         this->expr = expr;
+    }
+
+    ASTId* getId(){
+        return id;
+    }
+    ASTType* getType(){
+        return type;
+    }
+    ASTExpr* getExpr(){
+        return expr;
+    }
+
+    void accept(Visitor* visitor){
+        visitor->visit(this);
     }
 
 };
@@ -55,6 +90,14 @@ public:
     ASTPrint(ASTExpr* expr){
         this->expr = expr;
     }
+
+    ASTExpr* getExpr(){
+        return expr;
+    }
+
+    void accept(Visitor* visitor){
+        visitor->visit(this);
+    }
 };
 
 class ASTRtrn : public ASTStmt {
@@ -64,24 +107,45 @@ public:
     ASTRtrn(ASTExpr* expr){
         this->expr = expr;
     }
+
+    ASTExpr* getExpr(){
+        return expr;
+    }
+
+    void accept(Visitor* visitor){
+        visitor->visit(this);
+    }
 };
 
 class ASTIfStmt : public ASTStmt {
 private:
-    // in "if X then Y", X is the antecedent
-    ASTExpr* antecedent;
+    ASTExpr* expr;
     ASTBlock* trueBlock;
     ASTBlock* falseBlock;
 public:
-    ASTIfStmt(ASTExpr* antecedent, ASTBlock* trueBlock){
-        this->antecedent = antecedent;
+    ASTIfStmt(ASTExpr* expr, ASTBlock* trueBlock){
+        this->expr = expr;
         this->trueBlock = trueBlock;
         this->falseBlock = nullptr;
     }
-    ASTIfStmt(ASTExpr* antecedent, ASTBlock* trueBlock, ASTBlock* falseBlock){
-        this->antecedent = antecedent;
+    ASTIfStmt(ASTExpr* expr, ASTBlock* trueBlock, ASTBlock* falseBlock){
+        this->expr = expr;
         this->trueBlock = trueBlock;
         this->falseBlock = falseBlock;
+    }
+
+    ASTExpr* getExpr(){
+        return expr;
+    }
+    ASTBlock* getTrueBlock(){
+        return trueBlock;
+    }
+    ASTBlock* getFalseBlock(){
+        return falseBlock;
+    }
+
+    void accept(Visitor* visitor){
+        visitor->visit(this);
     }
 };
 
@@ -116,6 +180,23 @@ public:
         this->assignment = assignment;
         this->block = block;
     }
+
+    ASTVarDecl* getVarDecl(){
+        return varDecl;
+    }
+    ASTExpr* getExpr(){
+        return expr;
+    }
+    ASTAssignment* getAssignment(){
+        return assignment;
+    }
+    ASTBlock* getBlock(){
+        return block;
+    }
+
+    void accept(Visitor* visitor){
+        visitor->visit(this);
+    }
 };
 
 class ASTWhileStmt : public ASTStmt {
@@ -127,6 +208,17 @@ public:
         this->expr = expr;
         this->block = block;
     }
+
+    ASTExpr* getExpr(){
+        return expr;
+    }
+    ASTBlock* getBlock(){
+        return block;
+    }
+
+    void accept(Visitor* visitor){
+        visitor->visit(this);
+    }
 };
 
 class ASTFormalParam : public ASTNode {
@@ -137,6 +229,17 @@ public:
     ASTFormalParam(ASTId* id, ASTType* type){
         this->id = id;
         this->type = type;
+    }
+
+    ASTId* getId(){
+        return id;
+    }
+    ASTType* getType(){
+        return type;
+    }
+
+    void accept(Visitor* visitor){
+        visitor->visit(this);
     }
 };
 
@@ -157,6 +260,22 @@ public:
         this->formalParams = formalParams;
         this->type = type;
         this->formalParams = formalParams;
+    }
+
+    ASTId* getId(){
+        return id;
+    }
+    vector<ASTFormalParam*> getFormalParams(){
+        return formalParams;
+    }
+    ASTType* getType(){
+        return type;
+    }
+    ASTBlock* getBlock(){
+        return block;
+    }
+    void accept(Visitor* visitor){
+        visitor->visit(this);
     }
 };
 

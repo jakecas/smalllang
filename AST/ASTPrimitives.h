@@ -28,16 +28,16 @@ enum MultOp {
     ANDOP
 };
 
+enum UnaryOp{
+    MINUS,
+    NOT
+};
+
 enum Datatype {
     FLOATTYPE,
     INTTYPE,
     BOOLTYPE,
     AUTOTYPE
-};
-
-enum UnaryOp{
-    MINUS,
-    NOT
 };
 
 class ASTType : public ASTNode {
@@ -46,6 +46,14 @@ private:
 public:
     ASTType(Datatype datatype){
         this->datatype = datatype;
+    }
+
+    Datatype getDatatype(){
+        return datatype;
+    }
+
+    void accept(Visitor* visitor){
+        visitor->visit(this);
     }
 };
 

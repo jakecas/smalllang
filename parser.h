@@ -38,6 +38,7 @@ private:
     vector<Token*> lookahead(int c);
     void checkAndConsumeNextToken(Type type, string msg);
     Token* peekNextToken();
+    bool checkEof();
     bool isNextToken(Type type);
     Token* nextToken();
 
@@ -110,6 +111,14 @@ void Parser::checkAndConsumeNextToken(Type type, string msg){
 }
 Token* Parser::peekNextToken(){
     return lookahead(1)[0];
+}
+bool Parser::checkEof(){
+    try{
+        peekNextToken();
+    } catch (EOFException* e){
+        return true;
+    }
+    return false;
 }
 bool Parser::isNextToken(Type type){
     return peekNextToken()->getType() == type;
@@ -429,7 +438,10 @@ ASTFactor* Parser::parseFactor(){
         case FLOATL:
             return parseFloatLit();
         case IDT:
-            if(isNextToken(OPENROUND)){
+            // isNextToken(OPENROUND) cannot be used, as the next token is the identifier.
+            // We have to look two tokens ahead, and this is the only place this is done.
+            // So an extra (isNextNextToken) function was not made.
+            if(lookahead(2)[1]->getType() == OPENROUND){
                 return parseFuncCall();
             }
             return parseId();
@@ -484,7 +496,7 @@ ASTExpr* Parser::parseExpr(){
 }
 
 ASTProgram* Parser::parseProgram(){
-    while(!lexer->isEof()){
+    while(!checkEof()){
         astTree->addStmt(parseStmt());
     }
     return astTree;

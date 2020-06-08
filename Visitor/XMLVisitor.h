@@ -342,13 +342,13 @@ void XMLVisitor::visit(ASTFuncDecl* funcDecl){
 void XMLVisitor::visit(ASTBlock* block){
     vector<ASTStmt*> stmts = block->getStmts();
 
-    file << "<Block>" << endl;
+    file << getIndent() << "<Block>" << endl;
     incIndent();
     for(int i = 0; i < stmts.size(); i++){
         stmts[i]->accept(this);
     }
     decIndent();
-    file << "</Block>" << endl;
+    file << getIndent() << "</Block>" << endl;
 }
 
 void XMLVisitor::visit(ASTProgram* program){

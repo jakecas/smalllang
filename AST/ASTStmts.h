@@ -259,7 +259,7 @@ public:
         this->id = id;
         this->formalParams = formalParams;
         this->type = type;
-        this->formalParams = formalParams;
+        this->block = block;
     }
 
     ASTId* getId(){

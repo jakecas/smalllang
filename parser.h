@@ -94,7 +94,7 @@ Token* Parser::consumeNullPtrsAndGetToken() {
 
 vector<Token*> Parser::lookahead(int c){
     vector<Token*> lookaheadResult;
-    for (int i = 0; i < c; i++) {
+    for (unsigned int i = 0; i < c; i++) {
         Token* tmp;
         if(i >= lookaheadBuffer.size()){
             lookaheadBuffer.push_back(consumeNullPtrsAndGetToken());

@@ -123,7 +123,7 @@ void XMLVisitor::visit(ASTFuncCall* funcCall){
     vector<ASTActualParam*> params = funcCall->getActualParams();
     file << getIndent()  << "<ActualParams>" << endl;
     incIndent();
-    for(int i = 0; i < params.size(); i++){
+    for(unsigned int i = 0; i < params.size(); i++){
         params[i]->accept(this);
     }
     decIndent();
@@ -328,7 +328,7 @@ void XMLVisitor::visit(ASTFuncDecl* funcDecl){
     vector<ASTFormalParam*> params = funcDecl->getFormalParams();
     file << getIndent()  << "<FormalParams>" << endl;
     incIndent();
-    for(int i = 0; i < params.size(); i++){
+    for(unsigned int i = 0; i < params.size(); i++){
         params[i]->accept(this);
     }
     decIndent();
@@ -344,7 +344,7 @@ void XMLVisitor::visit(ASTBlock* block){
 
     file << getIndent() << "<Block>" << endl;
     incIndent();
-    for(int i = 0; i < stmts.size(); i++){
+    for(unsigned int i = 0; i < stmts.size(); i++){
         stmts[i]->accept(this);
     }
     decIndent();
@@ -356,7 +356,7 @@ void XMLVisitor::visit(ASTProgram* program){
 
     file << "<Program>" << endl;
     incIndent();
-    for(int i = 0; i < stmts.size(); i++){
+    for(unsigned int i = 0; i < stmts.size(); i++){
         stmts[i]->accept(this);
     }
     decIndent();

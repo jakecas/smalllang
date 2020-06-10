@@ -14,7 +14,7 @@
 
 using namespace std;
 
-// Thrown if the file could not be opened.
+
 struct SyntaxErrorException : public exception {
 private:
     string msg;
@@ -78,7 +78,7 @@ private:
 public:
     Parser(Lexer* lexer){
         this->lexer = lexer;
-        this->astTree = new ASTProgram;
+        this->astTree = new ASTProgram();
     }
 
     ASTProgram* parseProgram();

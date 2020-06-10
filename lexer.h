@@ -8,7 +8,7 @@
 #include <stack>
 #include <string>
 #include <fstream>
-#include "lexertables.h"
+#include "Tables/lexertables.h"
 
 using namespace std;
 

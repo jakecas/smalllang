@@ -9,12 +9,14 @@
 #include "../AST/ASTPrimitives.h"
 #include "../AST/ASTExprs.h"
 
+using namespace std;
+
 struct VarNotInScope : public exception {
 private:
     string msg;
 public:
     VarNotInScope(string id){
-        this->msg = "Variable \"" + id + "\" not found in scope."
+        this->msg = "Variable \"" + id + "\" not found in scope.";
     }
     const char *message () const throw () {
         return msg.c_str();
@@ -25,7 +27,7 @@ private:
     string msg;
 public:
     FuncNotInScope(string id){
-        this->msg = "Function \"" + id + "\" not found in scope."
+        this->msg = "Function \"" + id + "\" not found in scope.";
     }
     const char *message () const throw () {
         return msg.c_str();
@@ -35,7 +37,7 @@ struct TooManyParams : public exception {
 private:
     string msg;
 public:
-    FuncNotInScope(string id){
+    TooManyParams(string id){
         this->msg = "Too many parameters in function call for function with id " + id;
     }
     const char *message () const throw () {
@@ -58,7 +60,7 @@ public:
         return id;
     }
 
-    string getDatatype(){
+    Datatype getDatatype(){
         return datatype;
     }
 };
@@ -84,22 +86,22 @@ public:
 
     Datatype getParamType(unsigned int i){
         if(i >= params.size()){
-            throw new TooManyParams(this->id);
+            throw new TooManyParams(id);
         }
-        return params[i].getDatatype();
+        return params[i]->getDatatype();
     }
 };
 
 class Scope{
 private:
-    map<id, Var*> varTable;
-    map<id, Func*> funcTable;
+    map<string, Var*> varTable;
+    map<string, Func*> funcTable;
 public:
     void push(Var* var){
-        varTable.insert(pair<id, Var*>(var->getId(), var));
+        varTable.insert(pair<string, Var*>(var->getId(), var));
     }
     void push(Func* func){
-        funcTable.insert(pair<id, Func*>(func->getId(), func));
+        funcTable.insert(pair<string, Func*>(func->getId(), func));
     }
 
     Var* findVar(string id){
@@ -108,7 +110,7 @@ public:
         }
         throw new VarNotInScope(id);
     }
-    Func* findVar(string id){
+    Func* findFunc(string id){
         if(funcTable.find(id) != funcTable.end()) {
             return funcTable.find(id)->second;
         }
@@ -118,10 +120,10 @@ public:
 
 class SymbolTable{
 private:
-    stack<Scope> scopes;
+    stack<Scope*> scopes;
 
 public:
-    stack<Scope> getScopes(){
+    stack<Scope*> getScopes(){
         return scopes;
     }
 
@@ -130,15 +132,15 @@ public:
     }
 
     void insert(Var* var){
-        scopes.top().push(var);
+        scopes.top()->push(var);
     }
     void insert(Func* func){
-        scopes.top().push(func);
+        scopes.top()->push(func);
     }
 
     bool isVarInCurrScope(string id){
         try{
-            scopes.top().findVar(id);
+            scopes.top()->findVar(id);
             return true;
         } catch(VarNotInScope* e){
             return false;
@@ -146,39 +148,40 @@ public:
     }
     bool isFuncInCurrScope(string id){
         try{
-            scopes.top().findFunc(id);
+            scopes.top()->findFunc(id);
             return true;
         } catch(FuncNotInScope* e){
             return false;
         }
     }
 
-    static Var* lookupVar(stack<Scope> scopes, string id){
+    static Var* lookupVar(stack<Scope*> scopes, string id){
         // Base case
         if(scopes.empty()){
             throw new VarNotInScope(id);
         }
         // Inductive case
         try{
-            return scopes.top().findVar(id);
+            return scopes.top()->findVar(id);
         } catch(VarNotInScope* e){
-            Scope tmp = scopes.top();
+            Scope* tmp = scopes.top();
             scopes.pop();
             Var* var = lookupVar(scopes, id);
             scopes.push(tmp);
             return var;
         }
     }
-    static Func* lookupFunc(stack<Scope> scopes, string id){
+
+    static Func* lookupFunc(stack<Scope*> scopes, string id){
         // Base case
         if(scopes.empty()){
             throw new FuncNotInScope(id);
         }
         // Inductive case
         try{
-            return scopes.top().findFunc(id);
+            return scopes.top()->findFunc(id);
         } catch(FuncNotInScope* e){
-            Scope tmp = scopes.top();
+            Scope* tmp = scopes.top();
             scopes.pop();
             Func* func = lookupFunc(scopes, id);
             scopes.push(tmp);
@@ -192,17 +195,17 @@ public:
 
 };
 
-Var* resolveVar(ASTId* id, ASTType* type){
-    return new Var(id->getId(), type->getDatatype());
+Var* resolveVar(ASTId* id, Datatype datatype){
+    return new Var(id->getId(), datatype);
 }
 
-Func* resolveFunc(ASTId* id, ASTType* type, vector<ASTFormalParam*> params){
-    vectors<Var*> vars;
+Func* resolveFunc(ASTId* id, Datatype returnType, vector<ASTFormalParam*> params){
+    vector<Var*> vars;
     for(unsigned int i = 0; i < params.size(); i++){
         ASTFormalParam* param = params[i];
-        vars.push_back(resolveVar(param->getId(), param->getType()))
+        vars.push_back(resolveVar(param->getId(), param->getType()->getDatatype()));
     }
 
-    return new Func(id->getId(), type->getDatatype(), vars);
+    return new Func(id->getId(), returnType, vars);
 }
 #endif //SMALLLANG_SYMBOLTABLE_H

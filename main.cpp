@@ -3,6 +3,7 @@
 #include "lexer.h"
 #include "parser.h"
 #include "Visitor/XMLVisitor.h"
+#include "Visitor/SemanticAnalyzer.h"
 
 using namespace std;
 
@@ -36,6 +37,13 @@ int main(int argc, char **argv) {
     cout << "Creating XML." << endl;
     XMLVisitor* xmlVisitor = new XMLVisitor(filename + ".xml");
     xmlVisitor->visit(parseTree);
+
+    SemanticAnalyzer* semanticAnalyzer = new SemanticAnalyzer();
+    try {
+        semanticAnalyzer->visit(parseTree);
+    } catch(SemanticErrorException* e){
+        cout << e->message() << endl;
+    }
     return 0;
 }
 

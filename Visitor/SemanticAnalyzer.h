@@ -36,16 +36,10 @@ string getDatatypeName(Datatype datatype){
             return "auto";
     }
 }
-void ifIdExistsThrowExceptionThenReset(string type, string id){
-    if(idExists){
-        throw new SemanticErrorException(type + " with id " + id + " already exists in this scope.");
-    }
-    idExists = false;
-}
 
 class SemanticAnalyzer : public Visitor {
 private:
-    SymbolTable symbolTable;
+    SymbolTable* symbolTable;
     Datatype currType; // To be used when determining autos
     Datatype exprType; // Type of last expression evaluated
     Datatype simpleExprType; // Type of last simple expression evaluated
@@ -79,9 +73,11 @@ private:
     void visit(ASTFuncDecl* funcDecl);
     void visit(ASTBlock* block);
 
+    void ifIdExistsThrowExceptionThenReset(string type, string id);
+
 public:
     SemanticAnalyzer(){
-        SymbolTable = new SymbolTable();
+        symbolTable = new SymbolTable();
         currType = AUTOTYPE;
         exprType = AUTOTYPE;
         simpleExprType = AUTOTYPE;
@@ -92,6 +88,12 @@ public:
 
     void visit(ASTProgram* program);
 };
+void SemanticAnalyzer::ifIdExistsThrowExceptionThenReset(string type, string id){
+    if(idExists){
+        throw new SemanticErrorException(type + " with id " + id + " already exists in this scope.");
+    }
+    idExists = false;
+}
 
 void SemanticAnalyzer::visit(ASTType* type){
     // currently empty, but it is still called where it should be so it can be implemented in the future if needs be.
@@ -108,9 +110,9 @@ void SemanticAnalyzer::visit(ASTFloatLit* floatLit){
 
 
 void SemanticAnalyzer::visit(ASTId* id){
-    if(idIsFunc && symbolTable.isFuncInCurrScope(id)) {
+    if(idIsFunc && symbolTable->isFuncInCurrScope(id->getId())) {
         idExists = true;
-    } else if(!idIsFunc && symbolTable.isVarInCurrScope(id)) {
+    } else if(!idIsFunc && symbolTable->isVarInCurrScope(id->getId())) {
         idExists = true;
     }
 }
@@ -118,17 +120,17 @@ void SemanticAnalyzer::visit(ASTActualParam* actualParam){
     actualParam->getExpr()->accept(this);
 }
 void SemanticAnalyzer::visit(ASTFuncCall* funcCall){
-    ASTId* id = assignment->getId();
+    ASTId* id = funcCall->getId();
     id->accept(this);
     idExists = false;
-    Func* func = SymbolTable.lookupFunc(symbolTable.getScopes(), id->getId());
+    Func* func = SymbolTable::lookupFunc(symbolTable->getScopes(), id->getId());
 
     vector<ASTActualParam*> params = funcCall->getActualParams();
     for(unsigned int i = 0; i < params.size(); i++){
         Datatype prev = exprType;
         params[i]->accept(this);
         if(func->getParamType(i) != exprType){
-            throw new SemanticErrorException("Parameter " + (i+1) +" in function call to " + id->getId() + " is of type " + getDatatypeName(exprType) + ". Expected: " + getDatatypeName(func->getParamType(i)));
+            throw new SemanticErrorException("Parameter " + to_string(i+1) +" in function call to " + id->getId() + " is of type " + getDatatypeName(exprType) + ". Expected: " + getDatatypeName(func->getParamType(i)));
         }
         exprType = prev;
     }
@@ -145,9 +147,9 @@ void SemanticAnalyzer::visit(ASTUnaryOp* unaryOp){
     Datatype prev = exprType;
     unaryOp->getExpr()->accept(this);
     if(unaryOp->getUnaryOp() == NOT && exprType != BOOLTYPE){
-        throw new SemanticErrorException("Expression of datatype " + getDatatypeName(exprType) + " cannot be used in NOT operation")
+        throw new SemanticErrorException("Expression of datatype " + getDatatypeName(exprType) + " cannot be used in NOT operation");
     } else if(unaryOp->getUnaryOp() == MINUS && exprType == BOOLTYPE){
-        throw new SemanticErrorException("Expression of datatype " + getDatatypeName(exprType) + " cannot be used in NOT operation")
+        throw new SemanticErrorException("Expression of datatype " + getDatatypeName(exprType) + " cannot be used in NOT operation");
     }
     factorType = exprType;
     exprType = prev;
@@ -163,12 +165,12 @@ void SemanticAnalyzer::visit(ASTTerm* term){
 
     if(term->getTerm()){
         if(term->getMultOp() == ANDOP && termType != BOOLTYPE){
-            throw new SemanticErrorException("Datatype " + getDatatypeName(termType) + " cannot be used in AND operation")
+            throw new SemanticErrorException("Datatype " + getDatatypeName(termType) + " cannot be used in AND operation");
         } else if(term->getMultOp() != ANDOP && termType == BOOLTYPE){
-            throw new SemanticErrorException("Datatype " + getDatatypeName(termType) + " cannot be used in * or / operations")
+            throw new SemanticErrorException("Datatype " + getDatatypeName(termType) + " cannot be used in * or / operations");
         }
         if(term->getMultOp() == DIVOP && termType != FLOATTYPE){
-            throw new SemanticErrorException("Datatype " + getDatatypeName(termType) + " cannot be used in / operations, only floats")
+            throw new SemanticErrorException("Datatype " + getDatatypeName(termType) + " cannot be used in / operations, only floats");
         }
 
         term->getTerm()->accept(this);
@@ -186,9 +188,9 @@ void SemanticAnalyzer::visit(ASTSimpleExpr* simpleExpr){
 
     if(simpleExpr->getSimpleExpr()){
         if(simpleExpr->getAddOp() == OR && simpleExprType != BOOLTYPE){
-            throw new SemanticErrorException("Datatype " + getDatatypeName(simpleExprType) + " cannot be used in OR operation")
+            throw new SemanticErrorException("Datatype " + getDatatypeName(simpleExprType) + " cannot be used in OR operation");
         } else if(simpleExpr->getAddOp() != OR && simpleExprType == BOOLTYPE){
-            throw new SemanticErrorException("Datatype " + getDatatypeName(simpleExprType) + " cannot be used in + or - operations")
+            throw new SemanticErrorException("Datatype " + getDatatypeName(simpleExprType) + " cannot be used in + or - operations");
         }
 
         simpleExpr->getSimpleExpr()->accept(this);
@@ -216,7 +218,7 @@ void SemanticAnalyzer::visit(ASTAssignment* assignment){
     ASTId* id = assignment->getId();
     id->accept(this);
     idExists = false;
-    Var* var = SymbolTable.lookupVar(symbolTable.getScopes(), id->getId());
+    Var* var = SymbolTable::lookupVar(symbolTable->getScopes(), id->getId());
     assignment->getExpr()->accept(this);
 
     if(var->getDatatype() != exprType){
@@ -229,18 +231,18 @@ void SemanticAnalyzer::visit(ASTVarDecl* varDecl){
     ifIdExistsThrowExceptionThenReset("Variable", id->getId());
 
     Datatype prev = currType;
-    ASTType type = varDecl->getType();
-    currType = type.getDatatype();
+    ASTType* type = varDecl->getType();
+    currType = type->getDatatype();
     type->accept(this);
     varDecl->getExpr()->accept(this);
 
     if(currType == AUTOTYPE){
         currType = exprType;
     } else if(currType != exprType){
-        throw new SemanticErrorException("Function type " + getDatatypeName(currType) + " does not match return expression type " + getDatatypeName(exprType))
+        throw new SemanticErrorException("Function type " + getDatatypeName(currType) + " does not match return expression type " + getDatatypeName(exprType));
     }
 
-    symbolTable.insert(resolveVar(id->getId(), currType))
+    symbolTable->insert(resolveVar(id, currType));
 
     currType = prev;
 }
@@ -252,13 +254,13 @@ void SemanticAnalyzer::visit(ASTRtrn* rtrn){
     if(currType == AUTOTYPE){
         currType = exprType;
     } else if(currType != exprType){
-        throw new SemanticErrorException("Function type " + getDatatypeName(currType) + " does not match return expression type " + getDatatypeName(exprType))
+        throw new SemanticErrorException("Function type " + getDatatypeName(currType) + " does not match return expression type " + getDatatypeName(exprType));
     }
 }
 void SemanticAnalyzer::visit(ASTIfStmt* ifStmt){
     ifStmt->getExpr()->accept(this);
     if(exprType != BOOLTYPE){
-        throw new SemanticErrorException("Expression in if statement must be of type bool, not " + getDatatypeName(exprType))
+        throw new SemanticErrorException("Expression in if statement must be of type bool, not " + getDatatypeName(exprType));
     }
     ifStmt->getTrueBlock()->accept(this);
     if(ifStmt->getFalseBlock()){
@@ -267,26 +269,26 @@ void SemanticAnalyzer::visit(ASTIfStmt* ifStmt){
 
 }
 void SemanticAnalyzer::visit(ASTForStmt* forStmt){
-    symbolTable.push()
+    symbolTable->push();
     if(forStmt->getVarDecl()) {
         forStmt->getVarDecl()->accept(this);
     }
     forStmt->getExpr()->accept(this);
 
     if(exprType != BOOLTYPE){
-        throw new SemanticErrorException("Expression in for statement must be of type bool, not " + getDatatypeName(exprType))
+        throw new SemanticErrorException("Expression in for statement must be of type bool, not " + getDatatypeName(exprType));
     }
 
     if(forStmt->getAssignment()) {
         forStmt->getAssignment()->accept(this);
     }
     forStmt->getBlock()->accept(this);
-    symbolTable.pop();
+    symbolTable->pop();
 }
 void SemanticAnalyzer::visit(ASTWhileStmt* whileStmt){
     whileStmt->getExpr()->accept(this);
     if(exprType != BOOLTYPE){
-        throw new SemanticErrorException("Expression in if statement must be of type bool, not " + getDatatypeName(exprType))
+        throw new SemanticErrorException("Expression in if statement must be of type bool, not " + getDatatypeName(exprType));
     }
     whileStmt->getBlock()->accept(this);
 }
@@ -301,7 +303,7 @@ void SemanticAnalyzer::visit(ASTFormalParam* formalParam){
         throw new SemanticErrorException("Formal parameters cannot have type: auto");
     }
 
-    symbolTable.insert(id, type);
+    symbolTable->insert(resolveVar(id, type->getDatatype()));
 }
 void SemanticAnalyzer::visit(ASTFuncDecl* funcDecl){
     ASTId* id = funcDecl->getId();
@@ -316,41 +318,41 @@ void SemanticAnalyzer::visit(ASTFuncDecl* funcDecl){
     type->accept(this);
 
     vector<ASTFormalParam*> params = funcDecl->getFormalParams();
-    symbolTable.push()
+    symbolTable->push();
     for(unsigned int i = 0; i < params.size(); i++){
         params[i]->accept(this);
     }
 
     funcDecl->getBlock()->accept(this);
 
-    symbolTable.pop();
+    symbolTable->pop();
 
     if(currType == AUTOTYPE){
         throw new SemanticErrorException("Function " + id->getId() + " has no return statement.");
     }
-    symbolTable.insert(resolveFunc(id, currType, params));
+    symbolTable->insert(resolveFunc(id, currType, params));
     currType =  prev;
 }
 
 void SemanticAnalyzer::visit(ASTBlock* block){
     vector<ASTStmt*> stmts = block->getStmts();
 
-    symbolTable.push();
+    symbolTable->push();
     for(unsigned int i = 0; i < stmts.size(); i++){
         stmts[i]->accept(this);
     }
-    symbolTable.pop();
+    symbolTable->pop();
 }
 
 
 void SemanticAnalyzer::visit(ASTProgram* program){
     vector<ASTStmt*> stmts = program->getStmts();
 
-    symbolTable.push();
+    symbolTable->push();
     for(unsigned int i = 0; i < stmts.size(); i++){
         stmts[i]->accept(this);
     }
-    symbolTable.pop();
+    symbolTable->pop();
 }
 
 #endif //SMALLLANG_SEMANTICANALYZER_H

@@ -11,39 +11,44 @@
 
 using namespace std;
 
-struct VarNotInScope : public exception {
+
+struct SemanticErrorException : public exception {
 private:
     string msg;
 public:
-    VarNotInScope(string id){
-        this->msg = "Variable \"" + id + "\" not found in scope.";
+    SemanticErrorException(string msg){
+        this->msg = msg;
     }
     const char *message () const throw () {
         return msg.c_str();
     }
 };
-struct FuncNotInScope : public exception {
-private:
-    string msg;
+
+struct VarNotInScope : public SemanticErrorException {
 public:
-    FuncNotInScope(string id){
-        this->msg = "Function \"" + id + "\" not found in scope.";
-    }
-    const char *message () const throw () {
-        return msg.c_str();
-    }
+    VarNotInScope(string id):SemanticErrorException("Variable \"" + id + "\" not found in scope."){}
 };
-struct TooManyParams : public exception {
-private:
-    string msg;
+struct FuncNotInScope : public SemanticErrorException {
 public:
-    TooManyParams(string id){
-        this->msg = "Too many parameters in function call for function with id " + id;
-    }
-    const char *message () const throw () {
-        return msg.c_str();
-    }
+    FuncNotInScope(string id):SemanticErrorException("Function \"" + id + "\" not found in scope."){}
 };
+struct TooManyParams : public SemanticErrorException {
+public:
+    TooManyParams(string id):SemanticErrorException("Too many parameters in function call for function with id " + id){}
+};
+
+string getDatatypeName(Datatype datatype){
+    switch(datatype){
+        case FLOATTYPE:
+            return "float";
+        case INTTYPE:
+            return "int";
+        case BOOLTYPE:
+            return "bool";
+        case AUTOTYPE:
+            return "auto";
+    }
+}
 
 
 class Var{
@@ -59,9 +64,12 @@ public:
     string getId(){
         return id;
     }
-
     Datatype getDatatype(){
         return datatype;
+    }
+
+    string toString(){
+        return id + ": " + getDatatypeName(datatype);
     }
 };
 class Func{
@@ -79,16 +87,25 @@ public:
     string getId(){
         return id;
     }
-
     Datatype getReturnType(){
         return returnType;
     }
-
     Datatype getParamType(unsigned int i){
         if(i >= params.size()){
             throw new TooManyParams(id);
         }
         return params[i]->getDatatype();
+    }
+
+    string toString(){
+        string out = id + ": " + getDatatypeName(returnType) + "\n\tParams:\t";
+
+        vector<Var*>::iterator it = params.begin();
+        while(it != params.end()){
+            out += (*it)->toString() + ", ";
+            it++;
+        }
+        return out;
     }
 };
 
@@ -115,6 +132,23 @@ public:
             return funcTable.find(id)->second;
         }
         throw new FuncNotInScope(id);
+    }
+
+    string toString(){
+        string out = "Vars:\n";
+        map<string, Var*>::iterator itv = varTable.begin();
+        while(itv != varTable.end()){
+            out += "\t" + itv->second->toString() + "\n";
+            itv++;
+        }
+
+        out += "Funcs:\n";
+        map<string, Func*>::iterator itf = funcTable.begin();
+        while(itf != funcTable.end()){
+            out += "\t" + itf->second->toString() + "\n";
+            itf++;
+        }
+        return out;
     }
 };
 

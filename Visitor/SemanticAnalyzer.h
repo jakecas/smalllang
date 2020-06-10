@@ -11,32 +11,6 @@
 #include "../AST/ASTProgram.h"
 #include "../Tables/symboltable.h"
 
-
-struct SemanticErrorException : public exception {
-private:
-    string msg;
-public:
-    SemanticErrorException(string msg){
-        this->msg = msg;
-    }
-    const char *message () const throw () {
-        return msg.c_str();
-    }
-};
-
-string getDatatypeName(Datatype datatype){
-    switch(datatype){
-        case FLOATTYPE:
-            return "float";
-        case INTTYPE:
-            return "int";
-        case BOOLTYPE:
-            return "bool";
-        case AUTOTYPE:
-            return "auto";
-    }
-}
-
 class SemanticAnalyzer : public Visitor {
 private:
     SymbolTable* symbolTable;
@@ -46,7 +20,8 @@ private:
     Datatype termType; // Type of last term evaluated
     Datatype factorType; // Type of last factor evaluated
     bool idIsFunc; // To be used when checking if an id already exists as a function or a var
-    bool idExists;
+    bool idExistsInCurrScope; // Used by visit(ASTId) to alert that the id exists in current scope.
+    bool findFactorType;
 
     void visit(ASTType* type);
     void visit(ASTBoolLit* boolLit);
@@ -73,7 +48,7 @@ private:
     void visit(ASTFuncDecl* funcDecl);
     void visit(ASTBlock* block);
 
-    void ifIdExistsThrowExceptionThenReset(string type, string id);
+    void ifIdExistsThrowException(string type, string id);
 
 public:
     SemanticAnalyzer(){
@@ -84,15 +59,21 @@ public:
         termType = AUTOTYPE;
         factorType = AUTOTYPE;
         idIsFunc = false;
+        findFactorType = false;
     }
 
     void visit(ASTProgram* program);
 };
-void SemanticAnalyzer::ifIdExistsThrowExceptionThenReset(string type, string id){
-    if(idExists){
-        throw new SemanticErrorException(type + " with id " + id + " already exists in this scope.");
+void SemanticAnalyzer::ifIdExistsThrowException(string type, string id){
+    if(idExistsInCurrScope){
+        string typeExists;
+        if(idIsFunc) {
+            typeExists = getDatatypeName(SymbolTable::lookupFunc(symbolTable->getScopes(), id)->getReturnType());
+        } else {
+            typeExists = getDatatypeName(SymbolTable::lookupVar(symbolTable->getScopes(), id)->getDatatype());
+        }
+        throw new SemanticErrorException(type + " with id " + id + " already exists in this scope with type: " + typeExists);
     }
-    idExists = false;
 }
 
 void SemanticAnalyzer::visit(ASTType* type){
@@ -105,25 +86,30 @@ void SemanticAnalyzer::visit(ASTIntLit* intLit){
     factorType = INTTYPE;
 }
 void SemanticAnalyzer::visit(ASTFloatLit* floatLit){
-
+    factorType = FLOATTYPE;
 }
 
 
 void SemanticAnalyzer::visit(ASTId* id){
     if(idIsFunc && symbolTable->isFuncInCurrScope(id->getId())) {
-        idExists = true;
+        idExistsInCurrScope = true;
     } else if(!idIsFunc && symbolTable->isVarInCurrScope(id->getId())) {
-        idExists = true;
+        idExistsInCurrScope = true;
+    }
+    if(!idIsFunc && findFactorType){
+        factorType = SymbolTable::lookupVar(symbolTable->getScopes(), id->getId())->getDatatype();
     }
 }
 void SemanticAnalyzer::visit(ASTActualParam* actualParam){
+    // we do not want to save the previous exprType here, that is done in the function call visitor
     actualParam->getExpr()->accept(this);
 }
 void SemanticAnalyzer::visit(ASTFuncCall* funcCall){
     ASTId* id = funcCall->getId();
+    idIsFunc = true;
     id->accept(this);
-    idExists = false;
     Func* func = SymbolTable::lookupFunc(symbolTable->getScopes(), id->getId());
+    idIsFunc = false;
 
     vector<ASTActualParam*> params = funcCall->getActualParams();
     for(unsigned int i = 0; i < params.size(); i++){
@@ -134,7 +120,7 @@ void SemanticAnalyzer::visit(ASTFuncCall* funcCall){
         }
         exprType = prev;
     }
-
+    factorType = func->getReturnType();
 }
 void SemanticAnalyzer::visit(ASTSubExpr* subExpr){
     Datatype prev = exprType;
@@ -156,7 +142,10 @@ void SemanticAnalyzer::visit(ASTUnaryOp* unaryOp){
 }
 void SemanticAnalyzer::visit(ASTTerm* term){
     Datatype prev = factorType;
+    findFactorType = true;
     term->getFactor()->accept(this);
+    findFactorType = false;
+
     if(termType == AUTOTYPE){
         termType = factorType;
     } else if(termType != factorType){
@@ -208,7 +197,9 @@ void SemanticAnalyzer::visit(ASTExpr* expr){
 
     if(expr->getExpr()){
         // Relop doesn't matter in semantic analysis, (though it could be added here that <, >, <=, >= cannot be used with bools)
+        // What matters is that if all operands are of the same type, then the expression results in bool
         expr->getExpr()->accept(this);
+        exprType = BOOLTYPE;
     }
     simpleExprType = prev;
 }
@@ -217,23 +208,29 @@ void SemanticAnalyzer::visit(ASTExpr* expr){
 void SemanticAnalyzer::visit(ASTAssignment* assignment){
     ASTId* id = assignment->getId();
     id->accept(this);
-    idExists = false;
+    idExistsInCurrScope = false;
     Var* var = SymbolTable::lookupVar(symbolTable->getScopes(), id->getId());
+
+    Datatype prev = exprType;
     assignment->getExpr()->accept(this);
 
     if(var->getDatatype() != exprType){
         throw new SemanticErrorException("Variable " + var->getId() + " of type " + getDatatypeName(var->getDatatype()) + " cannot be assigned a value of type " + getDatatypeName(exprType));
     }
+    exprType = prev;
 }
 void SemanticAnalyzer::visit(ASTVarDecl* varDecl){
     ASTId* id = varDecl->getId();
+    idExistsInCurrScope = false;
     id->accept(this);
-    ifIdExistsThrowExceptionThenReset("Variable", id->getId());
+    ifIdExistsThrowException("Variable", id->getId());
 
-    Datatype prev = currType;
+    Datatype prevType = currType;
     ASTType* type = varDecl->getType();
     currType = type->getDatatype();
     type->accept(this);
+
+    Datatype prevExpr = exprType;
     varDecl->getExpr()->accept(this);
 
     if(currType == AUTOTYPE){
@@ -241,23 +238,28 @@ void SemanticAnalyzer::visit(ASTVarDecl* varDecl){
     } else if(currType != exprType){
         throw new SemanticErrorException("Function type " + getDatatypeName(currType) + " does not match return expression type " + getDatatypeName(exprType));
     }
-
     symbolTable->insert(resolveVar(id, currType));
 
-    currType = prev;
+    exprType = prevExpr;
+    currType = prevType;
 }
 void SemanticAnalyzer::visit(ASTPrint* print){
+    Datatype prev = exprType;
     print->getExpr()->accept(this);
+    exprType = prev;
 }
 void SemanticAnalyzer::visit(ASTRtrn* rtrn){
+    Datatype prev = exprType;
     rtrn->getExpr()->accept(this);
     if(currType == AUTOTYPE){
         currType = exprType;
     } else if(currType != exprType){
         throw new SemanticErrorException("Function type " + getDatatypeName(currType) + " does not match return expression type " + getDatatypeName(exprType));
     }
+    exprType = prev;
 }
 void SemanticAnalyzer::visit(ASTIfStmt* ifStmt){
+    Datatype prev = exprType;
     ifStmt->getExpr()->accept(this);
     if(exprType != BOOLTYPE){
         throw new SemanticErrorException("Expression in if statement must be of type bool, not " + getDatatypeName(exprType));
@@ -266,13 +268,14 @@ void SemanticAnalyzer::visit(ASTIfStmt* ifStmt){
     if(ifStmt->getFalseBlock()){
         ifStmt->getFalseBlock()->accept(this);
     }
-
+    exprType = prev;
 }
 void SemanticAnalyzer::visit(ASTForStmt* forStmt){
     symbolTable->push();
     if(forStmt->getVarDecl()) {
         forStmt->getVarDecl()->accept(this);
     }
+    Datatype prev = exprType;
     forStmt->getExpr()->accept(this);
 
     if(exprType != BOOLTYPE){
@@ -283,24 +286,29 @@ void SemanticAnalyzer::visit(ASTForStmt* forStmt){
         forStmt->getAssignment()->accept(this);
     }
     forStmt->getBlock()->accept(this);
+
+    exprType = prev;
     symbolTable->pop();
 }
 void SemanticAnalyzer::visit(ASTWhileStmt* whileStmt){
+    Datatype prev = exprType;
     whileStmt->getExpr()->accept(this);
     if(exprType != BOOLTYPE){
         throw new SemanticErrorException("Expression in if statement must be of type bool, not " + getDatatypeName(exprType));
     }
     whileStmt->getBlock()->accept(this);
+    exprType = prev;
 }
 void SemanticAnalyzer::visit(ASTFormalParam* formalParam){
     ASTId* id = formalParam->getId();
+    idExistsInCurrScope = false;
     id->accept(this);
-    ifIdExistsThrowExceptionThenReset("Variable", id->getId());
+    ifIdExistsThrowException("Variable", id->getId());
     ASTType* type = formalParam->getType();
     type->accept(this);
 
     if(type->getDatatype() == AUTOTYPE){
-        throw new SemanticErrorException("Formal parameters cannot have type: auto");
+        throw new SemanticErrorException("Formal parameters cannot have type: " + getDatatypeName(type->getDatatype()));
     }
 
     symbolTable->insert(resolveVar(id, type->getDatatype()));
@@ -308,8 +316,9 @@ void SemanticAnalyzer::visit(ASTFormalParam* formalParam){
 void SemanticAnalyzer::visit(ASTFuncDecl* funcDecl){
     ASTId* id = funcDecl->getId();
     idIsFunc = true;
+    idExistsInCurrScope = false;
     id->accept(this);
-    ifIdExistsThrowExceptionThenReset("Function", id->getId());
+    ifIdExistsThrowException("Function", id->getId());
     idIsFunc = false;
 
     Datatype prev = currType;
@@ -350,7 +359,14 @@ void SemanticAnalyzer::visit(ASTProgram* program){
 
     symbolTable->push();
     for(unsigned int i = 0; i < stmts.size(); i++){
-        stmts[i]->accept(this);
+        try {
+            stmts[i]->accept(this);
+        } catch(SemanticErrorException* e){
+            cout << "Semantic error found in program statement: " << i << endl;
+            cout << "Program-wide stack vars and funcs:\n"<< endl;
+            cout << symbolTable->getScopes().top()->toString() << endl;
+            throw e;
+        }
     }
     symbolTable->pop();
 }

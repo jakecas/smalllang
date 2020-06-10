@@ -116,7 +116,7 @@ void XMLVisitor::visit(ASTActualParam* actualParam){
     file << getIndent()  << "</ActualParam>" << endl;
 }
 void XMLVisitor::visit(ASTFuncCall* funcCall){
-    file << getIndent() << "<FunCall>" << endl;
+    file << getIndent() << "<FuncCall>" << endl;
     incIndent();
     funcCall->getId()->accept(this);
 
@@ -130,7 +130,7 @@ void XMLVisitor::visit(ASTFuncCall* funcCall){
     file << getIndent()  << "</ActualParams>" << endl;
 
     decIndent();
-    file << getIndent() <<"</FunCall>" << endl;
+    file << getIndent() <<"</FuncCall>" << endl;
 }
 void XMLVisitor::visit(ASTSubExpr* subExpr){
     file << getIndent() << "<SubExpr>" << endl;

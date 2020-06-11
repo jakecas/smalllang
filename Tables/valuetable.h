@@ -14,12 +14,12 @@ public:
     VarVal(string id, Datatype datatype, ASTLiteral* val): Var(id, datatype){
         this->val = val;
     }
-    VarVal(Var* var, ASTLiteral* val): Var(var->getId(), var->getDatatype()){
-        this->val = val;
-    }
 
     ASTLiteral* getVal(){
         return val;
+    }
+    void setVal(ASTLiteral* val){
+        this->val = val;
     }
 };
 
@@ -30,8 +30,9 @@ public:
     FuncVal(string id, Datatype datatype, vector<Var*> params, ASTBlock* block): Func(id, datatype, params){
         this->block = block;
     }
-    FuncVal(Func* func, ASTBlock* block): Func(func->getId(), func->getReturnType(), func->getParams()){
-        this->block = block;
+
+    string getParamId(unsigned int i){
+        return params[i]->getId();
     }
 
     ASTBlock* getBlock(){
@@ -52,12 +53,17 @@ public:
     }
 };
 
-VarVal* resolveVarVal(ASTId* id, Datatype datatype, ASTLiteral* val){
-    return new VarVal(resolveVar(id, datatype), val);
+VarVal* resolveVarVal(string id, Datatype datatype, ASTLiteral* val){
+    return new VarVal(id, datatype, val);
 }
 
-FuncVal* resolveFuncVal(ASTId* id, Datatype returnType, vector<ASTFormalParam*> params, ASTBlock* block){
-    return new FuncVal(resolveFunc(id, returnType, params), block);
+FuncVal* resolveFuncVal(string id, Datatype returnType, vector<ASTFormalParam*> params, ASTBlock* block){
+    vector<Var*> vars;
+    for(unsigned int i = 0; i < params.size(); i++){
+        ASTFormalParam* param = params[i];
+        vars.push_back(resolveVar(param->getId(), param->getType()->getDatatype()));
+    }
+    return new FuncVal(id, returnType, vars, block);
 }
 
 #endif //SMALLLANG_VALUETABLE_H

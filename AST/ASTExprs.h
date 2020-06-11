@@ -208,6 +208,8 @@ class ASTLiteral : public ASTFactor {
 public:
     ASTLiteral(){}
 
+    virtual string toString() = 0;
+
     virtual void accept(Visitor* visitor) = 0;
 };
 
@@ -221,6 +223,10 @@ public:
 
     bool getVal(){
         return val;
+    }
+
+    string toString(){
+        return (val ? "true" : "false");
     }
 
     void accept(Visitor* visitor){
@@ -240,6 +246,10 @@ public:
         return val;
     }
 
+    string toString(){
+        return to_string(val);
+    }
+
     void accept(Visitor* visitor){
         visitor->visit(this);
     }
@@ -255,6 +265,10 @@ public:
 
     float getVal(){
         return val;
+    }
+
+    string toString(){
+        return to_string(val);
     }
 
     void accept(Visitor* visitor){

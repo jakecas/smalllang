@@ -60,6 +60,7 @@ public:
         this->id = id;
         this->datatype = datatype;
     }
+    virtual ~Var() {}
 
     string getId(){
         return id;
@@ -83,12 +84,16 @@ public:
         this->returnType = returnType;
         this->params = params;
     }
+    virtual ~Func() {}
 
     string getId(){
         return id;
     }
     Datatype getReturnType(){
         return returnType;
+    }
+    vector<Var*> getParams(){
+        return params;
     }
     Datatype getParamType(unsigned int i){
         if(i >= params.size()){
@@ -157,6 +162,9 @@ private:
     stack<Scope*> scopes;
 
 public:
+    SymbolTable(){}
+    virtual ~SymbolTable() {}
+
     stack<Scope*> getScopes(){
         return scopes;
     }

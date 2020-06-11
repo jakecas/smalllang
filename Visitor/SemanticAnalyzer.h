@@ -363,7 +363,7 @@ void SemanticAnalyzer::visit(ASTProgram* program){
             stmts[i]->accept(this);
         } catch(SemanticErrorException* e){
             cout << "Semantic error found in program statement: " << i << endl;
-            cout << "Program-wide stack vars and funcs:\n"<< endl;
+            cout << "Top-most stack vars and funcs:\n"<< endl;
             cout << symbolTable->getScopes().top()->toString() << endl;
             throw e;
         }

@@ -19,28 +19,28 @@ int main(int argc, char **argv) {
     Parser* parser = new Parser(lexer);
     ASTProgram* parseTree;
 
-//    while(!lexer->isEof()){
     try {
+        cout << "Parsing... ";
         parseTree = parser->parseProgram();
+        cout << "Reached EOF." << endl;
     } catch(EOFException* e){
         cout << "ERROR: Reached EOF." << endl;
-//        break;
     } catch(InvalidStateException* e){
         cout << "ERROR" << endl;
-//        break;
     } catch(SyntaxErrorException* e){
         cout << e->message() << endl;
     }
-//    }
 
-    cout << "Reached EOF." << endl;
-    cout << "Creating XML." << endl;
+    cout << "Creating XML... ";
     XMLVisitor* xmlVisitor = new XMLVisitor(filename + ".xml");
     xmlVisitor->visit(parseTree);
+    cout << "Complete." << endl;
 
+    cout << "Performing semantic analysis... ";
     SemanticAnalyzer* semanticAnalyzer = new SemanticAnalyzer();
     try {
         semanticAnalyzer->visit(parseTree);
+        cout << "Complete." << endl;
     } catch(SemanticErrorException* e){
         cout << e->message() << endl;
     }

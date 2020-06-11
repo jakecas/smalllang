@@ -1,0 +1,8 @@
+//
+// Created by Jake on 11/06/2020.
+//
+
+#ifndef SMALLLANG_VALUETABLE_H
+#define SMALLLANG_VALUETABLE_H
+
+#endif //SMALLLANG_VALUETABLE_H

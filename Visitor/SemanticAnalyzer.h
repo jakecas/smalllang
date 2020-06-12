@@ -323,7 +323,8 @@ void SemanticAnalyzer::visit(ASTFuncDecl* funcDecl){
 
     Datatype prev = currType;
     ASTType* type = funcDecl->getType();
-    currType = type->getDatatype();
+    // set it to auto, then check against function type so as to ensure a return statement exists.
+    currType = AUTOTYPE;
     type->accept(this);
 
     vector<ASTFormalParam*> params = funcDecl->getFormalParams();
@@ -338,6 +339,9 @@ void SemanticAnalyzer::visit(ASTFuncDecl* funcDecl){
 
     if(currType == AUTOTYPE){
         throw new SemanticErrorException("Function " + id->getId() + " has no return statement.");
+    } else if(type->getDatatype() != AUTOTYPE && currType != type->getDatatype()){
+        // return expression doesn't match the type of the function (which is not auto)
+        throw new SemanticErrorException("Function " + id->getId() + " of type " + getDatatypeName(type->getDatatype()) + " has return statement of type " + getDatatypeName(currType));
     }
     symbolTable->insert(resolveFunc(id, currType, params));
     currType =  prev;

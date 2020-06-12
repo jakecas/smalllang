@@ -1,9 +1,11 @@
 #include <iostream>
 #include <fstream>
+
 #include "lexer.h"
 #include "parser.h"
 #include "Visitor/XMLVisitor.h"
 #include "Visitor/SemanticAnalyzer.h"
+#include "Visitor/Executor.h"
 
 using namespace std;
 
@@ -25,10 +27,13 @@ int main(int argc, char **argv) {
         cout << "Reached EOF." << endl;
     } catch(EOFException* e){
         cout << "ERROR: Reached EOF." << endl;
+        return -1;
     } catch(InvalidStateException* e){
         cout << "ERROR" << endl;
+        return -1;
     } catch(SyntaxErrorException* e){
         cout << e->message() << endl;
+        return -1;
     }
 
     cout << "Creating XML... ";
@@ -43,7 +48,14 @@ int main(int argc, char **argv) {
         cout << "Complete." << endl;
     } catch(SemanticErrorException* e){
         cout << e->message() << endl;
+        return -1;
     }
+
+    Executor* executor = new Executor();
+    cout << "Running the program..." << endl;
+    executor->visit(parseTree);
+    cout << "\nDone." << endl;
+
     return 0;
 }
 

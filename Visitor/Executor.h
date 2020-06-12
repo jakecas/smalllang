@@ -2,11 +2,12 @@
 // Created by Jake on 09/06/2020.
 //
 
-#ifndef SMALLLANG_SEMANTICANALYZER_H
-#define SMALLLANG_SEMANTICANALYZER_H
+#ifndef SMALLLANG_EXECUTOR_H
+#define SMALLLANG_EXECUTOR_H
 
 #include <stack>
 #include <string>
+#include <functional>
 
 #include "Visitor.h"
 #include "../AST/ASTProgram.h"
@@ -16,6 +17,7 @@ class Executor : public Visitor {
 private:
     ValueTable* valueTable;
     stack<ASTLiteral*> execStack;
+    bool isReturn;
 
     void visit(ASTType* type);
     void visit(ASTBoolLit* boolLit);
@@ -52,9 +54,17 @@ private:
         execStack.push(val);
     }
 
+    // T is specific ASTLiteral, P is primitive of specific ASTLiteral, and Op is the function to be applied
+    template<class T, class Op> void applyOp(Op op){
+        T* rhs = dynamic_cast<T*>(stackPop());
+        T* lhs = dynamic_cast<T*>(stackPop());
+        stackPush(new T(op(lhs->getVal(), rhs->getVal())));
+    }
+
 public:
     Executor(){
         valueTable = new ValueTable();
+        isReturn = false;
     }
 
     void visit(ASTProgram* program);
@@ -78,10 +88,10 @@ void Executor::visit(ASTActualParam* actualParam){
 }
 void Executor::visit(ASTFuncCall* funcCall){
     ASTId* id = funcCall->getId();
-    FuncVal* func = ValueTable::lookupFuncVal(id->getId());
+    FuncVal* func = valueTable->lookupFuncVal(id->getId());
 
     // Scope for function parameters.
-    valueTable->push()
+    valueTable->push();
 
     vector<ASTActualParam*> params = funcCall->getActualParams();
     for(unsigned int i = 0; i < params.size(); i++){
@@ -124,46 +134,26 @@ void Executor::visit(ASTUnaryOp* unaryOp){
 void Executor::visit(ASTTerm* term){
     term->getFactor()->accept(this);
 
+    // If it is just a single term, it's already on top of the stack.
     if(term->getTerm()){
-        ASTLiteral* val1 = stackPop();
-
         term->getTerm()->accept(this);
-        ASTLiteral* val2 = stackPop();
+
+        ASTFloatLit* floatLit = dynamic_cast<ASTFloatLit*>(execStack.top());
 
         // val1 multOp val2
         switch (term->getMultOp()){
             case MULTOP:
-                ASTFloatLit* floatLit1 = dynamic_cast<ASTFloatLit*>(val1);
                 if(floatLit){
-                    float lit1 = floatLit1->getVal();
-                    ASTFloatLit* floatLit2 = dynamic_cast<ASTFloatLit*>(val2);
-                    float lit2 = floatLit2->getVal();
-                    float ans = lit1 * lit2;
-                    stackPush(new ASTFloatLit(ans));
+                    applyOp<ASTFloatLit>(multiplies<float>());
                 } else{
-                    ASTIntLit* intLit1 = dynamic_cast<ASTIntLit*>(val1);
-                    int lit1 = intLit1->getVal();
-                    ASTIntLit* intLit2 = dynamic_cast<ASTIntLit*>(val2);
-                    int lit2 = intLit2->getVal();
-                    int ans = lit1 * lit2;
-                    stackPush(new ASTIntLit(ans));
+                    applyOp<ASTIntLit>(multiplies<int>());
                 }
                 break;
             case DIVOP:
-                ASTFloatLit* floatLit1 = dynamic_cast<ASTFloatLit*>(val1);
-                float lit1 = floatLit1->getVal();
-                ASTFloatLit* floatLit2 = dynamic_cast<ASTFloatLit*>(val2);
-                float lit2 = floatLit2->getVal();
-                float ans = lit1 / lit2;
-                stackPush(new ASTFloatLit(ans));
+                applyOp<ASTFloatLit>(divides<float>());
                 break;
-            case AND:
-                ASTBoolLit* boolLit1 = dynamic_cast<ASTBoolLit*>(val1);
-                bool lit1 = boolLit1->getVal();
-                ASTBoolLit* boolLit2 = dynamic_cast<ASTBoolLit*>(val2);
-                bool lit2 = boolLit2->getVal();
-                bool ans = lit1 && lit2;
-                stackPush(new ASTBoolLit(ans));
+            case ANDOP:
+                applyOp<ASTBoolLit>(logical_and<bool>());
                 break;
         }
     }
@@ -172,54 +162,28 @@ void Executor::visit(ASTSimpleExpr* simpleExpr){
     simpleExpr->getTerm()->accept(this);
 
     if(simpleExpr->getSimpleExpr()){
-        ASTLiteral* val1 = stackPop();
-
         simpleExpr->getSimpleExpr()->accept(this);
-        ASTLiteral* val2 = stackPop();
 
-        // val1 multOp val2
+        ASTFloatLit* floatLit = dynamic_cast<ASTFloatLit*>(execStack.top());
+
+        // val1 addOp val2
         switch (simpleExpr->getAddOp()){
             case ADD:
-                ASTFloatLit* floatLit1 = dynamic_cast<ASTFloatLit*>(val1);
                 if(floatLit){
-                    float lit1 = floatLit1->getVal();
-                    ASTFloatLit* floatLit2 = dynamic_cast<ASTFloatLit*>(val2);
-                    float lit2 = floatLit2->getVal();
-                    float ans = lit1 + lit2;
-                    stackPush(new ASTFloatLit(ans));
+                    applyOp<ASTFloatLit>(plus<float>());
                 } else{
-                    ASTIntLit* intLit1 = dynamic_cast<ASTIntLit*>(val1);
-                    int lit1 = intLit1->getVal();
-                    ASTIntLit* intLit2 = dynamic_cast<ASTIntLit*>(val2);
-                    int lit2 = intLit2->getVal();
-                    int ans = lit1 + lit2;
-                    stackPush(new ASTIntLit(ans));
+                    applyOp<ASTIntLit>(plus<int>());
                 }
                 break;
             case SUB:
-                ASTFloatLit* floatLit1 = dynamic_cast<ASTFloatLit*>(val1);
                 if(floatLit){
-                    float lit1 = floatLit1->getVal();
-                    ASTFloatLit* floatLit2 = dynamic_cast<ASTFloatLit*>(val2);
-                    float lit2 = floatLit2->getVal();
-                    float ans = lit1 - lit2;
-                    stackPush(new ASTFloatLit(ans));
+                    applyOp<ASTFloatLit>(minus<float>());
                 } else{
-                    ASTIntLit* intLit1 = dynamic_cast<ASTIntLit*>(val1);
-                    int lit1 = intLit1->getVal();
-                    ASTIntLit* intLit2 = dynamic_cast<ASTIntLit*>(val2);
-                    int lit2 = intLit2->getVal();
-                    int ans = lit1 - lit2;
-                    stackPush(new ASTIntLit(ans));
+                    applyOp<ASTIntLit>(minus<int>());
                 }
                 break;
             case OR:
-                ASTBoolLit* boolLit1 = dynamic_cast<ASTBoolLit*>(val1);
-                bool lit1 = boolLit1->getVal();
-                ASTBoolLit* boolLit2 = dynamic_cast<ASTBoolLit*>(val2);
-                bool lit2 = boolLit2->getVal();
-                bool ans = lit1 || lit2;
-                stackPush(new ASTBoolLit(ans));
+                applyOp<ASTBoolLit>(logical_or<bool>());
                 break;
         }
     }
@@ -228,55 +192,68 @@ void Executor::visit(ASTExpr* expr){
     expr->getSimpleExpr()->accept(this);
 
     if(expr->getExpr()){
-        ASTLiteral* val1 = stackPop();
-
         expr->getExpr()->accept(this);
-        ASTLiteral* val2 = stackPop();
 
-        // val1 multOp val2
+        // Checking types of top of stack without popping
+        ASTFloatLit* floatLit = dynamic_cast<ASTFloatLit*>(execStack.top());
+        ASTIntLit* intLit = dynamic_cast<ASTIntLit*>(execStack.top());
+
+        // val1 relOp val2
         switch (expr->getRelOp()){
-//            case ADD:
-//                ASTFloatLit* floatLit1 = dynamic_cast<ASTFloatLit*>(val1);
-//                if(floatLit){
-//                    float lit1 = floatLit1->getVal();
-//                    ASTFloatLit* floatLit2 = dynamic_cast<ASTFloatLit*>(val2);
-//                    float lit2 = floatLit2->getVal();
-//                    float ans = lit1 + lit2;
-//                    stackPush(new ASTFloatLit(ans));
-//                } else{
-//                    ASTIntLit* intLit1 = dynamic_cast<ASTIntLit*>(val1);
-//                    int lit1 = intLit1->getVal();
-//                    ASTIntLit* intLit2 = dynamic_cast<ASTIntLit*>(val2);
-//                    int lit2 = intLit2->getVal();
-//                    int ans = lit1 + lit2;
-//                    stackPush(new ASTIntLit(ans));
-//                }
-//                break;
-//            case SUB:
-//                ASTFloatLit* floatLit1 = dynamic_cast<ASTFloatLit*>(val1);
-//                if(floatLit){
-//                    float lit1 = floatLit1->getVal();
-//                    ASTFloatLit* floatLit2 = dynamic_cast<ASTFloatLit*>(val2);
-//                    float lit2 = floatLit2->getVal();
-//                    float ans = lit1 - lit2;
-//                    stackPush(new ASTFloatLit(ans));
-//                } else{
-//                    ASTIntLit* intLit1 = dynamic_cast<ASTIntLit*>(val1);
-//                    int lit1 = intLit1->getVal();
-//                    ASTIntLit* intLit2 = dynamic_cast<ASTIntLit*>(val2);
-//                    int lit2 = intLit2->getVal();
-//                    int ans = lit1 - lit2;
-//                    stackPush(new ASTIntLit(ans));
-//                }
-//                break;
-//            case OR:
-//                ASTBoolLit* boolLit1 = dynamic_cast<ASTBoolLit*>(val1);
-//                bool lit1 = boolLit1->getVal();
-//                ASTBoolLit* boolLit2 = dynamic_cast<ASTBoolLit*>(val2);
-//                bool lit2 = boolLit2->getVal();
-//                bool ans = lit1 || lit2;
-//                stackPush(new ASTBoolLit(ans));
-//                break;
+            case LTOP:
+                if(floatLit){
+                    applyOp<ASTFloatLit>(less_equal<float>());
+                } else if(intLit){
+                    applyOp<ASTIntLit>(less_equal<int>());
+                } else{
+                    applyOp<ASTBoolLit>(less_equal<bool>());
+                }
+                break;
+            case LEOP:
+                if(floatLit){
+                    applyOp<ASTFloatLit>(less<float>());
+                } else if(intLit){
+                    applyOp<ASTIntLit>(less<int>());
+                } else{
+                    applyOp<ASTBoolLit>(less<bool>());
+                }
+                break;
+            case NEOP:
+                if(floatLit){
+                    applyOp<ASTFloatLit>(not_equal_to<float>());
+                } else if(intLit){
+                    applyOp<ASTIntLit>(not_equal_to<int>());
+                } else{
+                    applyOp<ASTBoolLit>(not_equal_to<bool>());
+                }
+                break;
+            case GTOP:
+                if(floatLit){
+                    applyOp<ASTFloatLit>(greater<float>());
+                } else if(intLit){
+                    applyOp<ASTIntLit>(greater<int>());
+                } else{
+                    applyOp<ASTBoolLit>(greater<bool>());
+                }
+                break;
+            case GEOP:
+                if(floatLit){
+                    applyOp<ASTFloatLit>(greater_equal<float>());
+                } else if(intLit){
+                    applyOp<ASTIntLit>(greater_equal<int>());
+                } else{
+                    applyOp<ASTBoolLit>(greater_equal<bool>());
+                }
+                break;
+            case EQOP:
+                if(floatLit){
+                    applyOp<ASTFloatLit>(equal_to<float>());
+                } else if(intLit){
+                    applyOp<ASTIntLit>(equal_to<int>());
+                } else{
+                    applyOp<ASTBoolLit>(equal_to<bool>());
+                }
+                break;
         }
     }
 }
@@ -284,7 +261,7 @@ void Executor::visit(ASTExpr* expr){
 
 void Executor::visit(ASTAssignment* assignment){
     ASTId* id = assignment->getId();
-    VarVal* var = ValueTable::lookupVarVal(id->getId());
+    VarVal* var = valueTable->lookupVarVal(id->getId());
 
     assignment->getExpr()->accept(this);
 
@@ -304,7 +281,8 @@ void Executor::visit(ASTPrint* print){
     cout << stackPop()->toString() << endl;
 }
 void Executor::visit(ASTRtrn* rtrn){
-    EOirgfaoraiaesrignurezruek
+    rtrn->getExpr()->accept(this);
+    isReturn = true;
 }
 void Executor::visit(ASTIfStmt* ifStmt){
     ifStmt->getExpr()->accept(this);
@@ -362,7 +340,12 @@ void Executor::visit(ASTBlock* block){
 
     valueTable->push();
     for(unsigned int i = 0; i < stmts.size(); i++){
+        cout << "Block stmt:" << i << endl;
+
         stmts[i]->accept(this);
+        if(isReturn){
+            break;
+        }
     }
     valueTable->pop();
 }
@@ -374,8 +357,9 @@ void Executor::visit(ASTProgram* program){
     valueTable->push();
     for(unsigned int i = 0; i < stmts.size(); i++){
         try {
+            cout << "Stmt:" << i << endl;
             stmts[i]->accept(this);
-        } catch(* e){
+        } catch(exception* e){
             cout << "Runtime error found in program statement: " << i << endl;
             cout << "Top-most stack vars and funcs:\n"<< endl;
             cout << valueTable->getScopes().top()->toString() << endl;
@@ -385,4 +369,4 @@ void Executor::visit(ASTProgram* program){
     valueTable->pop();
 }
 
-#endif //SMALLLANG_SEMANTICANALYZER_H
+#endif //SMALLLANG_EXECUTOR_H

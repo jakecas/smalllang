@@ -32,7 +32,7 @@ public:
     }
 
     string getParamId(unsigned int i){
-        return params[i]->getId();
+        return getParams()[i]->getId();
     }
 
     ASTBlock* getBlock(){

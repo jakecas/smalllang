@@ -60,6 +60,12 @@ private:
         T* lhs = dynamic_cast<T*>(stackPop());
         stackPush(new T(op(lhs->getVal(), rhs->getVal())));
     }
+    // This needs to be separate otherwise we could have the result of a comparison between floats stored as ASTFloat
+    template<class T, class Op> void applyRelOp(Op op){
+        T* rhs = dynamic_cast<T*>(stackPop());
+        T* lhs = dynamic_cast<T*>(stackPop());
+        stackPush(new ASTBoolLit(op(lhs->getVal(), rhs->getVal())));
+    }
 
 public:
     Executor(){
@@ -82,7 +88,10 @@ void Executor::visit(ASTFloatLit* floatLit){
 }
 
 
-void Executor::visit(ASTId* id){}
+void Executor::visit(ASTId* id){
+    // This is only visited if the id represents a variable.
+    stackPush(valueTable->lookupVarVal(id->getId())->getVal());
+}
 void Executor::visit(ASTActualParam* actualParam){
     actualParam->getExpr()->accept(this);
 }
@@ -202,56 +211,59 @@ void Executor::visit(ASTExpr* expr){
         switch (expr->getRelOp()){
             case LTOP:
                 if(floatLit){
-                    applyOp<ASTFloatLit>(less_equal<float>());
+                    applyRelOp<ASTFloatLit>(less_equal<float>());
                 } else if(intLit){
-                    applyOp<ASTIntLit>(less_equal<int>());
+                    applyRelOp<ASTIntLit>(less_equal<int>());
                 } else{
-                    applyOp<ASTBoolLit>(less_equal<bool>());
+                    applyRelOp<ASTBoolLit>(less_equal<bool>());
                 }
                 break;
             case LEOP:
                 if(floatLit){
-                    applyOp<ASTFloatLit>(less<float>());
+                    applyRelOp<ASTFloatLit>(less<float>());
                 } else if(intLit){
-                    applyOp<ASTIntLit>(less<int>());
+                    applyRelOp<ASTIntLit>(less<int>());
                 } else{
-                    applyOp<ASTBoolLit>(less<bool>());
+                    applyRelOp<ASTBoolLit>(less<bool>());
                 }
                 break;
             case NEOP:
                 if(floatLit){
-                    applyOp<ASTFloatLit>(not_equal_to<float>());
+                    applyRelOp<ASTFloatLit>(not_equal_to<float>());
                 } else if(intLit){
-                    applyOp<ASTIntLit>(not_equal_to<int>());
+                    applyRelOp<ASTIntLit>(not_equal_to<int>());
                 } else{
-                    applyOp<ASTBoolLit>(not_equal_to<bool>());
+                    applyRelOp<ASTBoolLit>(not_equal_to<bool>());
                 }
                 break;
             case GTOP:
+                cout << "Is a gtop" << endl;
                 if(floatLit){
-                    applyOp<ASTFloatLit>(greater<float>());
+                    cout << "Is a float" << endl;
+                    applyRelOp<ASTFloatLit>(greater<float>());
+                    cout << "Result: " << execStack.top()->toString() << endl;
                 } else if(intLit){
-                    applyOp<ASTIntLit>(greater<int>());
+                    applyRelOp<ASTIntLit>(greater<int>());
                 } else{
-                    applyOp<ASTBoolLit>(greater<bool>());
+                    applyRelOp<ASTBoolLit>(greater<bool>());
                 }
                 break;
             case GEOP:
                 if(floatLit){
-                    applyOp<ASTFloatLit>(greater_equal<float>());
+                    applyRelOp<ASTFloatLit>(greater_equal<float>());
                 } else if(intLit){
-                    applyOp<ASTIntLit>(greater_equal<int>());
+                    applyRelOp<ASTIntLit>(greater_equal<int>());
                 } else{
-                    applyOp<ASTBoolLit>(greater_equal<bool>());
+                    applyRelOp<ASTBoolLit>(greater_equal<bool>());
                 }
                 break;
             case EQOP:
                 if(floatLit){
-                    applyOp<ASTFloatLit>(equal_to<float>());
+                    applyRelOp<ASTFloatLit>(equal_to<float>());
                 } else if(intLit){
-                    applyOp<ASTIntLit>(equal_to<int>());
+                    applyRelOp<ASTIntLit>(equal_to<int>());
                 } else{
-                    applyOp<ASTBoolLit>(equal_to<bool>());
+                    applyRelOp<ASTBoolLit>(equal_to<bool>());
                 }
                 break;
         }

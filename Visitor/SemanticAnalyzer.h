@@ -24,6 +24,7 @@ private:
     bool findFactorType;
     bool hasReturn;
     bool isInIfStmt;
+    bool isInFunc;
 
     void visit(ASTType* type);
     void visit(ASTBoolLit* boolLit);
@@ -64,6 +65,7 @@ public:
         findFactorType = false;
         hasReturn = false;
         isInIfStmt = false;
+        isInFunc = false;
     }
 
     void visit(ASTProgram* program);
@@ -253,6 +255,10 @@ void SemanticAnalyzer::visit(ASTPrint* print){
     exprType = prev;
 }
 void SemanticAnalyzer::visit(ASTRtrn* rtrn){
+    if(!isInFunc){
+        throw new SemanticErrorException("Cannot have a return statement outside of a function block.");
+    }
+
     Datatype prev = exprType;
     rtrn->getExpr()->accept(this);
     if(currType == AUTOTYPE){
@@ -322,7 +328,9 @@ void SemanticAnalyzer::visit(ASTFormalParam* formalParam){
     symbolTable->insert(resolveVar(id, type->getDatatype()));
 }
 void SemanticAnalyzer::visit(ASTFuncDecl* funcDecl){
+    isInFunc = true;
     hasReturn = false;
+
     ASTId* id = funcDecl->getId();
     idIsFunc = true;
     idExistsInCurrScope = false;
@@ -356,6 +364,7 @@ void SemanticAnalyzer::visit(ASTFuncDecl* funcDecl){
     }
     symbolTable->insert(resolveFunc(id, currType, params));
     currType =  prev;
+    isInFunc = false;
 }
 
 void SemanticAnalyzer::visit(ASTBlock* block){

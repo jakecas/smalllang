@@ -22,6 +22,8 @@ private:
     bool idIsFunc; // To be used when checking if an id already exists as a function or a var
     bool idExistsInCurrScope; // Used by visit(ASTId) to alert that the id exists in current scope.
     bool findFactorType;
+    bool hasReturn;
+    bool isInIfStmt;
 
     void visit(ASTType* type);
     void visit(ASTBoolLit* boolLit);
@@ -60,6 +62,8 @@ public:
         factorType = AUTOTYPE;
         idIsFunc = false;
         findFactorType = false;
+        hasReturn = false;
+        isInIfStmt = false;
     }
 
     void visit(ASTProgram* program);
@@ -257,18 +261,22 @@ void SemanticAnalyzer::visit(ASTRtrn* rtrn){
         throw new SemanticErrorException("Function type " + getDatatypeName(currType) + " does not match return expression type " + getDatatypeName(exprType));
     }
     exprType = prev;
+    // The following sets the hasReturn flag to true if this return statement is not in an if statement.
+    hasReturn = hasReturn || !isInIfStmt;
 }
 void SemanticAnalyzer::visit(ASTIfStmt* ifStmt){
+    isInIfStmt = true;
     Datatype prev = exprType;
     ifStmt->getExpr()->accept(this);
     if(exprType != BOOLTYPE){
         throw new SemanticErrorException("Expression in if statement must be of type bool, not " + getDatatypeName(exprType));
     }
+    exprType = prev;
     ifStmt->getTrueBlock()->accept(this);
     if(ifStmt->getFalseBlock()){
         ifStmt->getFalseBlock()->accept(this);
     }
-    exprType = prev;
+    isInIfStmt = false;
 }
 void SemanticAnalyzer::visit(ASTForStmt* forStmt){
     symbolTable->push();
@@ -314,6 +322,7 @@ void SemanticAnalyzer::visit(ASTFormalParam* formalParam){
     symbolTable->insert(resolveVar(id, type->getDatatype()));
 }
 void SemanticAnalyzer::visit(ASTFuncDecl* funcDecl){
+    hasReturn = false;
     ASTId* id = funcDecl->getId();
     idIsFunc = true;
     idExistsInCurrScope = false;
@@ -342,6 +351,8 @@ void SemanticAnalyzer::visit(ASTFuncDecl* funcDecl){
     } else if(type->getDatatype() != AUTOTYPE && currType != type->getDatatype()){
         // return expression doesn't match the type of the function (which is not auto)
         throw new SemanticErrorException("Function " + id->getId() + " of type " + getDatatypeName(type->getDatatype()) + " has return statement of type " + getDatatypeName(currType));
+    } else if(!hasReturn){
+        throw new SemanticErrorException("Function " + id->getId() + " has no return statement outside of an if statement.");
     }
     symbolTable->insert(resolveFunc(id, currType, params));
     currType =  prev;
@@ -366,9 +377,9 @@ void SemanticAnalyzer::visit(ASTProgram* program){
         try {
             stmts[i]->accept(this);
         } catch(SemanticErrorException* e){
-            cout << "Semantic error found in program statement: " << i << endl;
-            cout << "Top-most stack vars and funcs:\n"<< endl;
-            cout << symbolTable->getScopes().top()->toString() << endl;
+            cout << "Semantic error found in program statement: " << i+1 << endl;
+//            cout << "Top-most stack vars and funcs:\n"<< endl;
+            //cout << symbolTable->getScopes().top()->toString() << endl;
             throw e;
         }
     }

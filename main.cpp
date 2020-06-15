@@ -26,13 +26,13 @@ int main(int argc, char **argv) {
         parseTree = parser->parseProgram();
         cout << "Reached EOF." << endl;
     } catch(EOFException* e){
-        cout << "ERROR: Reached EOF." << endl;
+        cout << "\nError: Reached EOF while parsing." << endl;
         return -1;
     } catch(InvalidStateException* e){
-        cout << "ERROR" << endl;
+        cout << "\nError: Invalid state reached while parsing:\n" << e->message() << endl;
         return -1;
     } catch(SyntaxErrorException* e){
-        cout << e->message() << endl;
+        cout <<  "\nError: Syntax error found:\n" << e->message() << endl;
         return -1;
     }
 
@@ -47,7 +47,7 @@ int main(int argc, char **argv) {
         semanticAnalyzer->visit(parseTree);
         cout << "Complete." << endl;
     } catch(SemanticErrorException* e){
-        cout << e->message() << endl;
+        cout << "\nError: Semantic error found:\n" << e->message() << endl;
         return -1;
     }
 

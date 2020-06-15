@@ -81,7 +81,7 @@ private:
 public:
     Func(string id, Datatype datatype, vector<Var*> params){
         this->id = id;
-        this->returnType = returnType;
+        this->returnType = datatype;
         this->params = params;
     }
     virtual ~Func() {}

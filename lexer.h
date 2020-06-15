@@ -13,9 +13,20 @@
 using namespace std;
 
 // Thrown if the file could not be opened.
-struct InvalidStateException : public exception {
+struct ErrorOpeningFileException : public exception {
     const char *message () const throw () {
-        return "Invalid state reached.";
+        return "Error opening file.";
+    }
+};
+struct InvalidStateException : public exception {
+private:
+    string msg;
+public:
+    InvalidStateException(int linec){
+        this->msg = "line: " + to_string(linec) + "; Lexeme could not be matched.";
+    }
+    const char *message () const throw () {
+        return msg.c_str();
     }
 };
 // Thrown when file is already read.
@@ -48,7 +59,7 @@ public:
 
         if (!file.is_open()){
             cout << "Error opening source file: " << filename << endl;
-            throw new InvalidStateException();
+            throw new ErrorOpeningFileException();
         }
     }
     ~Lexer(){
@@ -93,7 +104,7 @@ string Lexer::truncate(){
         file.seekg(p); // Moving pointer back to where it was good.
         return lexeme;
     } else {
-        throw new InvalidStateException();
+        throw new InvalidStateException(linec);
     }
 }
 

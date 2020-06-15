@@ -237,11 +237,8 @@ void Executor::visit(ASTExpr* expr){
                 }
                 break;
             case GTOP:
-                cout << "Is a gtop" << endl;
                 if(floatLit){
-                    cout << "Is a float" << endl;
                     applyRelOp<ASTFloatLit>(greater<float>());
-                    cout << "Result: " << execStack.top()->toString() << endl;
                 } else if(intLit){
                     applyRelOp<ASTIntLit>(greater<int>());
                 } else{
@@ -311,13 +308,17 @@ void Executor::visit(ASTForStmt* forStmt){
         forStmt->getVarDecl()->accept(this);
     }
 
-    while(dynamic_cast<ASTBoolLit*>(stackPop())->getVal()){
-        forStmt->getExpr()->accept(this);
+    // For loops are pre-checked.
+    forStmt->getExpr()->accept(this);
 
+    while(dynamic_cast<ASTBoolLit*>(stackPop())->getVal()){
         if (forStmt->getAssignment()) {
             forStmt->getAssignment()->accept(this);
         }
         forStmt->getBlock()->accept(this);
+
+        // We must check this at the end, i.e. just before we iterate again.
+        forStmt->getExpr()->accept(this);
     }
 
     valueTable->pop();
@@ -348,12 +349,11 @@ void Executor::visit(ASTFuncDecl* funcDecl){
 }
 
 void Executor::visit(ASTBlock* block){
+    isReturn = false;
     vector<ASTStmt*> stmts = block->getStmts();
 
     valueTable->push();
     for(unsigned int i = 0; i < stmts.size(); i++){
-        cout << "Block stmt:" << i << endl;
-
         stmts[i]->accept(this);
         if(isReturn){
             break;
@@ -369,7 +369,6 @@ void Executor::visit(ASTProgram* program){
     valueTable->push();
     for(unsigned int i = 0; i < stmts.size(); i++){
         try {
-            cout << "Stmt:" << i << endl;
             stmts[i]->accept(this);
         } catch(exception* e){
             cout << "Runtime error found in program statement: " << i << endl;

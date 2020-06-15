@@ -295,13 +295,12 @@ void SemanticAnalyzer::visit(ASTForStmt* forStmt){
     if(exprType != BOOLTYPE){
         throw new SemanticErrorException("Expression in for statement must be of type bool, not " + getDatatypeName(exprType));
     }
+    exprType = prev;
 
     if(forStmt->getAssignment()) {
         forStmt->getAssignment()->accept(this);
     }
     forStmt->getBlock()->accept(this);
-
-    exprType = prev;
     symbolTable->pop();
 }
 void SemanticAnalyzer::visit(ASTWhileStmt* whileStmt){
@@ -387,7 +386,7 @@ void SemanticAnalyzer::visit(ASTProgram* program){
             stmts[i]->accept(this);
         } catch(SemanticErrorException* e){
             cout << "Semantic error found in program statement: " << i+1 << endl;
-//            cout << "Top-most stack vars and funcs:\n"<< endl;
+            //cout << "Top-most stack vars and funcs:\n"<< endl;
             //cout << symbolTable->getScopes().top()->toString() << endl;
             throw e;
         }

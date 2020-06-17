@@ -48,6 +48,7 @@ private:
     ASTBoolLit* parseBoolLit();
     ASTIntLit* parseIntLit();
     ASTFloatLit* parseFloatLit();
+    ASTCharLit* parseCharLit();
     ASTId* parseId();
     MultOp parseMultOp();
     AddOp parseAddOp();
@@ -355,6 +356,10 @@ ASTFloatLit* Parser::parseFloatLit(){
     return new ASTFloatLit(stof(nextToken()->getLexeme()));
 }
 
+ASTCharLit* Parser::parseCharLit(){
+    return new ASTCharLit(nextToken()->getLexeme()[1]);
+}
+
 ASTActualParam* Parser::parseActualParam(){
     return new ASTActualParam(parseExpr());
 }
@@ -445,6 +450,8 @@ ASTFactor* Parser::parseFactor(){
             return parseIntLit();
         case FLOATL:
             return parseFloatLit();
+        case CHARL:
+            return parseCharLit();
         case IDT:
             // isNextToken(OPENROUND) cannot be used, as the next token is the identifier.
             // We have to look two tokens ahead, and this is the only place this is done.

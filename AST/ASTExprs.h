@@ -276,4 +276,25 @@ public:
     }
 };
 
+class ASTCharLit: public ASTLiteral {
+private:
+    char val;
+public:
+    ASTCharLit(char val){
+        this->val = val;
+    }
+
+    char getVal(){
+        return val;
+    }
+
+    string toString(){
+        return to_string(val);
+    }
+
+    void accept(Visitor* visitor){
+        //visitor->visit(this);
+    }
+};
+
 #endif //SMALLLANG_ASTEXPRS_H

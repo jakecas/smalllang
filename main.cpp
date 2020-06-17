@@ -3,9 +3,6 @@
 
 #include "lexer.h"
 #include "parser.h"
-#include "Visitor/XMLVisitor.h"
-#include "Visitor/SemanticAnalyzer.h"
-#include "Visitor/Executor.h"
 
 using namespace std;
 
@@ -33,20 +30,6 @@ int main(int argc, char **argv) {
         cout <<  "Error: Syntax error found:\n" << e->message() << endl;
         return -1;
     }
-
-    XMLVisitor* xmlVisitor = new XMLVisitor(filename + ".xml");
-    xmlVisitor->visit(parseTree);
-
-    SemanticAnalyzer* semanticAnalyzer = new SemanticAnalyzer();
-    try {
-        semanticAnalyzer->visit(parseTree);
-    } catch(SemanticErrorException* e){
-        cout << "Error: Semantic error found:\n" << e->message() << endl;
-        return -1;
-    }
-
-    Executor* executor = new Executor();
-    executor->visit(parseTree);
 
     return 0;
 }

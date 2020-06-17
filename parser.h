@@ -50,6 +50,7 @@ private:
     ASTFloatLit* parseFloatLit();
     ASTCharLit* parseCharLit();
     ASTId* parseId();
+    ASTIndexedId* parseIndexedId();
     MultOp parseMultOp();
     AddOp parseAddOp();
     RelOp parseRelOp();
@@ -67,6 +68,7 @@ private:
     //--Statements
     ASTAssignment* parseVarAssign();
     ASTVarDecl* parseVarDecl();
+    ASTArrayDecl* parseArrayDecl();
     ASTPrint* parsePrintStmt();
     ASTRtrn* parseRtrnStmt();
     ASTIfStmt* parseIfStmt();
@@ -147,6 +149,8 @@ ASTType* Parser::parseType(){
         return new ASTType(INTTYPE);
     } else if(tkn->getLexeme().compare("float") == 0){
         return new ASTType(FLOATTYPE);
+    } else if(tkn->getLexeme().compare("char") == 0){
+        return new ASTType(CHARTYPE);
     }
 }
 
@@ -166,8 +170,44 @@ ASTVarDecl* Parser::parseVarDecl(){
     return new ASTVarDecl(id, type, expr);
 }
 
+
+ASTArrayDecl* Parser::parseArrayDecl(){
+    // consume let token as it's served its purpose
+    nextToken();
+
+    ASTIndexedId* id = parseIndexedId();
+    checkAndConsumeNextToken(CLNL, "Missing ':' character in array declaration.");
+
+    ASTType* type = parseType();
+    vector<ASTExpr*> exprs;
+
+    if(isNextToken(EQUALSL)){
+        checkAndConsumeNextToken(EQUALSL, "Missing '=' character in array declaration.");
+        checkAndConsumeNextToken(OPENCURLY, "Missing '{' character in array declaration.");
+        while(!isNextToken(CLOSECURLY)){
+            exprs.push_back(parseExpr());
+            if(isNextToken(COMMAL)){
+                nextToken();
+            }
+        }
+        checkAndConsumeNextToken(CLOSECURLY, "Missing '}' character in array declaration.");
+
+        if(exprs.size() != id->getIndex()){
+            throw new SyntaxErrorException(lexer->getLineNum(), "Array of size " + to_string(id->getIndex()) + " does not match intialisation block of size " + to_string(exprs.size()));
+        }
+    }
+    checkAndConsumeNextToken(SEMICLNL, "Missing ';' character in array declaration.");
+
+    return new ASTArrayDecl(id, type, exprs);
+
+}
+
 ASTAssignment* Parser::parseVarAssign(){
     ASTId* id = parseId();
+    if(isNextToken(OPENSQUARE)){
+        id = parseIndexedId();
+    }
+
     checkAndConsumeNextToken(EQUALSL, "Missing '=' character in variable assignment.");
 
     ASTExpr* expr = parseExpr();
@@ -264,6 +304,9 @@ ASTWhileStmt* Parser::parseWhileStmt(){
 
 ASTFormalParam* Parser::parseFormalParam() {
     ASTId* id = parseId();
+    if(isNextToken(OPENSQUARE)){
+        id = parseIndexedId();
+    }
     nextToken(); // consume ':' token as it's served its purpose
     ASTType* type = parseType();
     return new ASTFormalParam(id, type);
@@ -311,6 +354,12 @@ ASTStmt* Parser::parseStmt(){
     Token* tkn = peekNextToken();
     switch(tkn->getType()){
         case LETK:
+            // Here we have to look three tokens ahead,
+            // The first being 'let', the second an identifier,
+            // and the third a possible '[' signifying an array.
+            if(lookahead(3)[2]->getType() == OPENSQUARE){
+                return parseArrayDecl();
+            }
             // variable declaration
             return parseVarDecl();
         case IDT:
@@ -387,6 +436,23 @@ ASTId* Parser::parseId(){
     return new ASTId(nextToken()->getLexeme());
 }
 
+ASTIndexedId* Parser::parseIndexedId(){
+    if(!isNextToken(IDT)){
+        throw new SyntaxErrorException(lexer->getLineNum(), "Missing identifier in declaration.");
+    }
+    string id = nextToken()->getLexeme();
+    checkAndConsumeNextToken(OPENSQUARE, "Missing '[' in indexed id.");
+    if(!isNextToken(INTL)){
+        throw new SyntaxErrorException(lexer->getLineNum(), "Invalid object '" + nextToken()->getLexeme() + "' as index. Must be int instead.");
+    }
+    int i = stoi(nextToken()->getLexeme());
+    if(i <= 0){
+        throw new SyntaxErrorException(lexer->getLineNum(), "Index for indexed id must be greater than 0, not "+ to_string(i));
+    }
+    checkAndConsumeNextToken(CLOSESQUARE, "Missing ']' in indexed id.");
+    return new ASTIndexedId(id, (unsigned int) i);
+}
+
 ASTSubExpr* Parser::parseSubExpr(){
     checkAndConsumeNextToken(OPENROUND, "Missing '(' character in function declaration.");
     ASTExpr* expr = parseExpr();
@@ -458,6 +524,8 @@ ASTFactor* Parser::parseFactor(){
             // So an extra (isNextNextToken) function was not made.
             if(lookahead(2)[1]->getType() == OPENROUND){
                 return parseFuncCall();
+            } else if(lookahead(2)[1]->getType() == OPENSQUARE){
+                return parseIndexedId();
             }
             return parseId();
         case OPENROUND:

@@ -199,6 +199,7 @@ public:
 };
 
 map<string, Type> keywords = {{"float", TYPET}, {"int", TYPET}, {"bool", TYPET},
+                                  {"char", TYPET},
                                   {"auto", AUTOK}, {"true", BOOLL}, {"false", BOOLL},
                                   {"and", MULTOPT}, {"or", ADDOPT}, {"not", NOTK},
                                   {"let", LETK}, {"print", PRINTK}, {"return", RETURNK},
@@ -242,9 +243,9 @@ Type findType(string lexeme, State state){
                 return CLOSEROUND;
             } else if(lexeme.compare("{") == 0){
                 return OPENCURLY;
-            } else if(lexeme.compare("}")){
+            } else if(lexeme.compare("}") == 0){
                 return CLOSECURLY;
-            } else if(lexeme.compare("[")){
+            } else if(lexeme.compare("[") == 0){
                 return OPENSQUARE;
             } else {
                 return CLOSESQUARE;

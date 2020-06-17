@@ -123,6 +123,22 @@ public:
     }
 };
 
+class ASTIndexedId : public ASTId {
+private:
+    unsigned int index;
+public:
+    ASTIndexedId(string id, unsigned int index): ASTId(id){
+        this->index = index;
+    }
+    unsigned int getIndex(){
+        return index;
+    }
+
+    void accept(Visitor* visitor){
+        //visitor->visit(this);
+    }
+};
+
 class ASTActualParam : public ASTNode {
 private:
     ASTExpr* expr;

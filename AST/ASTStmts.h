@@ -83,6 +83,41 @@ public:
 
 };
 
+class ASTArrayDecl : public ASTStmt {
+private:
+    ASTIndexedId* indexedId;
+    ASTType* type;
+    vector<ASTExpr*> exprs;
+public:
+    ASTArrayDecl(ASTIndexedId* indexedId, ASTType* type){
+        this->indexedId = indexedId;
+        this->type = type;
+    }
+    ASTArrayDecl(ASTIndexedId* indexedId, ASTType* type, vector<ASTExpr*> exprs){
+        this->indexedId = indexedId;
+        this->type = type;
+        this->exprs = exprs;
+    }
+
+    ASTId* getIndexedId(){
+        return indexedId;
+    }
+    ASTType* getType(){
+        return type;
+    }
+    vector<ASTExpr*> getExprs(){
+        return exprs;
+    }
+    ASTExpr* getExprAt(unsigned int i){
+        return exprs[i];
+    }
+
+    void accept(Visitor* visitor){
+        //visitor->visit(this);
+    }
+
+};
+
 class ASTPrint : public ASTStmt {
 private:
     ASTExpr* expr;

@@ -37,6 +37,7 @@ enum Datatype {
     FLOATTYPE,
     INTTYPE,
     BOOLTYPE,
+    CHARTYPE,
     AUTOTYPE
 };
 

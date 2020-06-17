@@ -155,8 +155,9 @@ void SemanticAnalyzer::visit(ASTTerm* term){
     if(termType == AUTOTYPE){
         termType = factorType;
     } else if(termType != factorType){
-        throw new SemanticErrorException("Type mismatch in term: " + getDatatypeName(exprType) + " cannot be used in multOps with " + getDatatypeName(termType));
+        throw new SemanticErrorException("Type mismatch in term: " + getDatatypeName(termType) + " cannot be used in multOps with " + getDatatypeName(factorType));
     }
+    factorType = prev;
 
     if(term->getTerm()){
         if(term->getMultOp() == ANDOP && termType != BOOLTYPE){
@@ -170,7 +171,6 @@ void SemanticAnalyzer::visit(ASTTerm* term){
 
         term->getTerm()->accept(this);
     }
-    factorType = prev;
 }
 void SemanticAnalyzer::visit(ASTSimpleExpr* simpleExpr){
     Datatype prev = termType;
@@ -180,6 +180,7 @@ void SemanticAnalyzer::visit(ASTSimpleExpr* simpleExpr){
     } else if(simpleExprType != termType){
         throw new SemanticErrorException("Type mismatch in simple expression: " + getDatatypeName(simpleExprType) + " cannot be used in addOps with " + getDatatypeName(termType));
     }
+    termType = prev;
 
     if(simpleExpr->getSimpleExpr()){
         if(simpleExpr->getAddOp() == OR && simpleExprType != BOOLTYPE){
@@ -190,7 +191,6 @@ void SemanticAnalyzer::visit(ASTSimpleExpr* simpleExpr){
 
         simpleExpr->getSimpleExpr()->accept(this);
     }
-    termType = prev;
 }
 void SemanticAnalyzer::visit(ASTExpr* expr){
     Datatype prev = simpleExprType;
@@ -200,6 +200,7 @@ void SemanticAnalyzer::visit(ASTExpr* expr){
     } else if(exprType != simpleExprType){
         throw new SemanticErrorException("Type mismatch in expression: " + getDatatypeName(exprType) + " cannot be related to " + getDatatypeName(simpleExprType));
     }
+    simpleExprType = prev;
 
     if(expr->getExpr()){
         // Relop doesn't matter in semantic analysis, (though it could be added here that <, >, <=, >= cannot be used with bools)
@@ -207,7 +208,6 @@ void SemanticAnalyzer::visit(ASTExpr* expr){
         expr->getExpr()->accept(this);
         exprType = BOOLTYPE;
     }
-    simpleExprType = prev;
 }
 
 
@@ -242,7 +242,7 @@ void SemanticAnalyzer::visit(ASTVarDecl* varDecl){
     if(currType == AUTOTYPE){
         currType = exprType;
     } else if(currType != exprType){
-        throw new SemanticErrorException("Function type " + getDatatypeName(currType) + " does not match return expression type " + getDatatypeName(exprType));
+        throw new SemanticErrorException("Variable type " + getDatatypeName(currType) + " does not match assigned expression type " + getDatatypeName(exprType));
     }
     symbolTable->insert(resolveVar(id, currType));
 

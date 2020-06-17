@@ -22,39 +22,31 @@ int main(int argc, char **argv) {
     ASTProgram* parseTree;
 
     try {
-        cout << "Parsing... ";
         parseTree = parser->parseProgram();
-        cout << "Reached EOF." << endl;
     } catch(EOFException* e){
-        cout << "\nError: Reached EOF while parsing." << endl;
+        cout << "Error: Reached EOF while parsing." << endl;
         return -1;
     } catch(InvalidStateException* e){
-        cout << "\nError: Invalid state reached while parsing:\n" << e->message() << endl;
+        cout << "Error: Invalid state reached while parsing:\n" << e->message() << endl;
         return -1;
     } catch(SyntaxErrorException* e){
-        cout <<  "\nError: Syntax error found:\n" << e->message() << endl;
+        cout <<  "Error: Syntax error found:\n" << e->message() << endl;
         return -1;
     }
 
-    cout << "Creating XML... ";
     XMLVisitor* xmlVisitor = new XMLVisitor(filename + ".xml");
     xmlVisitor->visit(parseTree);
-    cout << "Complete." << endl;
 
-    cout << "Performing semantic analysis... ";
     SemanticAnalyzer* semanticAnalyzer = new SemanticAnalyzer();
     try {
         semanticAnalyzer->visit(parseTree);
-        cout << "Complete." << endl;
     } catch(SemanticErrorException* e){
-        cout << "\nError: Semantic error found:\n" << e->message() << endl;
+        cout << "Error: Semantic error found:\n" << e->message() << endl;
         return -1;
     }
 
     Executor* executor = new Executor();
-    cout << "Running the program..." << endl;
     executor->visit(parseTree);
-    cout << "\nDone." << endl;
 
     return 0;
 }

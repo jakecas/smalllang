@@ -309,8 +309,8 @@ void SemanticAnalyzer::visit(ASTWhileStmt* whileStmt){
     if(exprType != BOOLTYPE){
         throw new SemanticErrorException("Expression in if statement must be of type bool, not " + getDatatypeName(exprType));
     }
-    whileStmt->getBlock()->accept(this);
     exprType = prev;
+    whileStmt->getBlock()->accept(this);
 }
 void SemanticAnalyzer::visit(ASTFormalParam* formalParam){
     ASTId* id = formalParam->getId();

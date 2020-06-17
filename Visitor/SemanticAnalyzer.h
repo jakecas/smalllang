@@ -129,11 +129,18 @@ void SemanticAnalyzer::visit(ASTFuncCall* funcCall){
     factorType = func->getReturnType();
 }
 void SemanticAnalyzer::visit(ASTSubExpr* subExpr){
-    Datatype prev = exprType;
+    Datatype prevExpr = exprType;
+    exprType = AUTOTYPE;
+    Datatype prevSimple = simpleExprType;
+    simpleExprType = AUTOTYPE;
+    Datatype prevTerm = termType;
+    termType = AUTOTYPE;
+
     subExpr->getExpr()->accept(this);
     factorType = exprType;
-    exprType = prev;
-
+    exprType = prevExpr;
+    simpleExprType = prevSimple;
+    termType = prevTerm;
 }
 void SemanticAnalyzer::visit(ASTUnaryOp* unaryOp){
     Datatype prev = exprType;

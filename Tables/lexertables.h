@@ -112,7 +112,7 @@ Cat getCat(char c){
     if(c == '='){
         return EQ;
     }
-    if(c == '(' || c == ')' || c == '{' || c == '}'){
+    if(c == '(' || c == ')' || c == '{' || c == '}' || c == '[' || c == ']'){
         return BRACE;
     }
     if(c == ',' || c == ':' || c == ';'){
@@ -170,6 +170,8 @@ enum Type {
     CLOSEROUND, // ')' literal
     OPENCURLY, // '{' literal
     CLOSECURLY, // '}' literal
+    OPENSQUARE, // '[' literal
+    CLOSESQUARE, // ']' literal
     COMMAL, // ',' literal
     CLNL, // ':' literal
     SEMICLNL, // ';' literal
@@ -240,8 +242,12 @@ Type findType(string lexeme, State state){
                 return CLOSEROUND;
             } else if(lexeme.compare("{") == 0){
                 return OPENCURLY;
-            } else {
+            } else if(lexeme.compare("}")){
                 return CLOSECURLY;
+            } else if(lexeme.compare("[")){
+                return OPENSQUARE;
+            } else {
+                return CLOSESQUARE;
             }
         case SEPS:
             if(lexeme.compare(",") == 0){

@@ -26,7 +26,7 @@ class ASTRtrn;
 class ASTIfStmt;
 class ASTForStmt;
 class ASTWhileStmt;
-class ASTFormalParam;
+class   ASTFormalParam;
 class ASTFuncDecl;
 class ASTBlock;
 

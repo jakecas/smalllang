@@ -32,6 +32,7 @@ private:
     Lexer* lexer;
     ASTProgram* astTree;
     deque<Token*> lookaheadBuffer;
+    bool inForStmt;
 
     // Internal Functions
     Token* consumeNullPtrsAndGetToken();
@@ -169,7 +170,9 @@ ASTAssignment* Parser::parseVarAssign(){
     checkAndConsumeNextToken(EQUALSL, "Missing '=' character in variable assignment.");
 
     ASTExpr* expr = parseExpr();
-    checkAndConsumeNextToken(SEMICLNL, "Missing ';' character in variable assignment.");
+    if(!inForStmt) {
+        checkAndConsumeNextToken(SEMICLNL, "Missing ';' character in variable assignment.");
+    }
 
     return new ASTAssignment(id, expr);
 }
@@ -223,9 +226,9 @@ ASTForStmt* Parser::parseForStmt(){
     ASTVarDecl* varDecl = nullptr;
     if(isNextToken(LETK)){
         varDecl = parseVarDecl();
+    } else {
+        checkAndConsumeNextToken(SEMICLNL,"Missing ';' character in for statement after optional variable declaration.");
     }
-
-    checkAndConsumeNextToken(SEMICLNL, "Missing ';' character in for statement after optional variable declaration.");
 
     ASTExpr* expr = parseExpr();
 
@@ -233,7 +236,9 @@ ASTForStmt* Parser::parseForStmt(){
 
     ASTAssignment* varAssign = nullptr;
     if(isNextToken(IDT)){
+        inForStmt = true;
         varAssign = parseVarAssign();
+        inForStmt = false;
     }
 
     checkAndConsumeNextToken(CLOSEROUND, "Missing ')' character in for statement.");
@@ -333,7 +338,6 @@ ASTStmt* Parser::parseStmt(){
             return parseBlock();
         default:
             throw new SyntaxErrorException(lexer->getLineNum(), "Invalid token \""+tkn->getLexeme()+"\" found while parsing statement.");
-            // Error?
     }
 }
 
@@ -372,6 +376,9 @@ ASTFuncCall* Parser::parseFuncCall(){
 }
 
 ASTId* Parser::parseId(){
+    if(!isNextToken(IDT)){
+        throw new SyntaxErrorException(lexer->getLineNum(), "Missing identifier in declaration.");
+    }
     return new ASTId(nextToken()->getLexeme());
 }
 
@@ -456,7 +463,6 @@ ASTFactor* Parser::parseFactor(){
             return parseUnaryOp();
         default:
             throw new SyntaxErrorException(lexer->getLineNum(), "Invalid token \""+tkn->getLexeme()+"\" found while parsing factor.");
-            // Error?
     }
 }
 

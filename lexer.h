@@ -25,6 +25,9 @@ public:
     InvalidStateException(int linec){
         this->msg = "line: " + to_string(linec) + "; Lexeme could not be matched.";
     }
+    InvalidStateException(int linec, string msg){
+        this->msg = "line: " + to_string(linec) + "; " + msg;
+    }
     const char *message () const throw () {
         return msg.c_str();
     }
@@ -143,6 +146,10 @@ Token* Lexer::getNextToken(){
             }
             return new Token(type, lexeme);
         }
+    }
+
+    if(currState == UMCMT || currState == AMCMT){
+        throw new InvalidStateException(linec, "Unclosed multi line comment found.");
     }
 
     // Final Rollback loop.

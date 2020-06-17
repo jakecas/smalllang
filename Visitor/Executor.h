@@ -211,20 +211,20 @@ void Executor::visit(ASTExpr* expr){
         switch (expr->getRelOp()){
             case LTOP:
                 if(floatLit){
-                    applyRelOp<ASTFloatLit>(less_equal<float>());
-                } else if(intLit){
-                    applyRelOp<ASTIntLit>(less_equal<int>());
-                } else{
-                    applyRelOp<ASTBoolLit>(less_equal<bool>());
-                }
-                break;
-            case LEOP:
-                if(floatLit){
                     applyRelOp<ASTFloatLit>(less<float>());
                 } else if(intLit){
                     applyRelOp<ASTIntLit>(less<int>());
                 } else{
                     applyRelOp<ASTBoolLit>(less<bool>());
+                }
+                break;
+            case LEOP:
+                if(floatLit){
+                    applyRelOp<ASTFloatLit>(less_equal<float>());
+                } else if(intLit){
+                    applyRelOp<ASTIntLit>(less_equal<int>());
+                } else{
+                    applyRelOp<ASTBoolLit>(less_equal<bool>());
                 }
                 break;
             case NEOP:
@@ -312,10 +312,11 @@ void Executor::visit(ASTForStmt* forStmt){
     forStmt->getExpr()->accept(this);
 
     while(dynamic_cast<ASTBoolLit*>(stackPop())->getVal()){
+        forStmt->getBlock()->accept(this);
+
         if (forStmt->getAssignment()) {
             forStmt->getAssignment()->accept(this);
         }
-        forStmt->getBlock()->accept(this);
 
         // We must check this at the end, i.e. just before we iterate again.
         forStmt->getExpr()->accept(this);

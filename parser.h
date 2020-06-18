@@ -33,6 +33,7 @@ private:
     ASTProgram* astTree;
     deque<Token*> lookaheadBuffer;
     bool inForStmt;
+    bool isArrSize;
 
     // Internal Functions
     Token* consumeNullPtrsAndGetToken();
@@ -175,7 +176,9 @@ ASTArrayDecl* Parser::parseArrayDecl(){
     // consume let token as it's served its purpose
     nextToken();
 
+    isArrSize = true;
     ASTIndexedId* id = parseIndexedId();
+    isArrSize = false;
     checkAndConsumeNextToken(CLNL, "Missing ':' character in array declaration.");
 
     ASTType* type = parseType();
@@ -191,10 +194,6 @@ ASTArrayDecl* Parser::parseArrayDecl(){
             }
         }
         checkAndConsumeNextToken(CLOSECURLY, "Missing '}' character in array declaration.");
-
-        if(exprs.size() != id->getIndex()){
-            throw new SyntaxErrorException(lexer->getLineNum(), "Array of size " + to_string(id->getIndex()) + " does not match intialisation block of size " + to_string(exprs.size()));
-        }
     }
     checkAndConsumeNextToken(SEMICLNL, "Missing ';' character in array declaration.");
 
@@ -203,9 +202,11 @@ ASTArrayDecl* Parser::parseArrayDecl(){
 }
 
 ASTAssignment* Parser::parseVarAssign(){
-    ASTId* id = parseId();
-    if(isNextToken(OPENSQUARE)){
+    ASTId* id;
+    if(lookahead(2)[1]->getType() == OPENSQUARE){
         id = parseIndexedId();
+    } else {
+        id = parseId();
     }
 
     checkAndConsumeNextToken(EQUALSL, "Missing '=' character in variable assignment.");
@@ -303,9 +304,11 @@ ASTWhileStmt* Parser::parseWhileStmt(){
 }
 
 ASTFormalParam* Parser::parseFormalParam() {
-    ASTId* id = parseId();
-    if(isNextToken(OPENSQUARE)){
+    ASTId* id;
+    if(lookahead(2)[1]->getType() == OPENSQUARE){
         id = parseIndexedId();
+    } else {
+        id = parseId();
     }
     nextToken(); // consume ':' token as it's served its purpose
     ASTType* type = parseType();
@@ -442,15 +445,18 @@ ASTIndexedId* Parser::parseIndexedId(){
     }
     string id = nextToken()->getLexeme();
     checkAndConsumeNextToken(OPENSQUARE, "Missing '[' in indexed id.");
-    if(!isNextToken(INTL)){
-        throw new SyntaxErrorException(lexer->getLineNum(), "Invalid object '" + nextToken()->getLexeme() + "' as index. Must be int instead.");
+
+    ASTExpr* index;
+    if(isNextToken(INTL)) {
+        int i = stoi(peekNextToken()->getLexeme());
+        if (i < 0 || (isArrSize && i == 0)) {
+            throw new SyntaxErrorException(lexer->getLineNum(),
+                                           "Index for indexed id in this case must not be " + to_string(i));
+        }
     }
-    int i = stoi(nextToken()->getLexeme());
-    if(i <= 0){
-        throw new SyntaxErrorException(lexer->getLineNum(), "Index for indexed id must be greater than 0, not "+ to_string(i));
-    }
+    index = parseExpr();
     checkAndConsumeNextToken(CLOSESQUARE, "Missing ']' in indexed id.");
-    return new ASTIndexedId(id, (unsigned int) i);
+    return new ASTIndexedId(id,index);
 }
 
 ASTSubExpr* Parser::parseSubExpr(){

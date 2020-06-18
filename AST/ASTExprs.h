@@ -125,12 +125,12 @@ public:
 
 class ASTIndexedId : public ASTId {
 private:
-    unsigned int index;
+    ASTExpr* index;
 public:
-    ASTIndexedId(string id, unsigned int index): ASTId(id){
+    ASTIndexedId(string id, ASTExpr* index): ASTId(id){
         this->index = index;
     }
-    unsigned int getIndex(){
+    ASTExpr* getIndex(){
         return index;
     }
 
